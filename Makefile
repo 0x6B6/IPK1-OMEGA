@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -std=gnu99 -Wall -Wextra -Werror #-pedantic
+CFLAGS = -std=c17 -Wall -Wextra -Werror -D_GNU_SOURCE
 
 EXECUTABLE = ipk-l4-scan
 

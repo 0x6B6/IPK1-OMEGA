@@ -12,45 +12,41 @@
 
 #include <sys/socket.h>
 #include <sys/types.h>
+
 #include "opts.h"
+#include "net_utils.h"
 
-#define PACKET_SIZE 64
-typedef char packet[PACKET_SIZE];
-
-#define TCP 0x0
-#define UDP 0x1
-
+/* L4 Scanner Structure */
 typedef struct l4_scanner {
-	int socket_fd;
+	int socket_fd;						// Socket file descriptor
 
-	uint16_t port;
+	packet s_packet, r_packet;			// Send packet, Receive packet
 
-	struct sockaddr *source;
-	struct sockaddr *destination;
+	uint16_t source_port;				// Source port (randomized)
+	uint16_t destination_port;			// Destination port (selected by input)
 
-	socklen_t source_len;
-	socklen_t destination_len;
-	
+	sa_family_t family;					// Address family
+
+	struct sockaddr *source_addr;		// Source address (selected interface)
+	struct sockaddr *destination_addr;	// Destination address (derived from host(s) address or domain name)
+
+	socklen_t source_addr_len;			// Source addres length
+	socklen_t destination_addr_len;		// Destination address length
 } l4_scanner;
 
-typedef struct pseudo_ipv4_h {
-
-} pseudo_ipv4_h;
-
-typedef struct pseudo_ipv6_h {
-
-} pseudo_ipv6_h;
-
-/* Initialisation and free of resources */
+/* Initialisation and release of resources */
 void init_scanner(l4_scanner *scanner);
 void free_scanner(l4_scanner *scanner);
 
-/* Setup function */
-int setup_scan(cfg_t *cfg);
+/* Starting point scan function */
+int start_scan(cfg_t *cfg);
 
-/* Iterates through given ports and calls port_scan to scan them one by one */
+/* Processes and handles the ports structure by the given protocol, invokes port_scan function */
 int process_ports(cfg_t *cfg, l4_scanner *scanner, int protocol);
 
+/* Last part of the scan process, at this stage every information needed is collected,
+ * all thats left is to scan the selected port(s) and analyze the response.
+ */
 int port_scan(cfg_t *cfg, l4_scanner *scanner, int port);
 
 #endif

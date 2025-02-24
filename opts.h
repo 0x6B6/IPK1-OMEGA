@@ -43,6 +43,7 @@ typedef struct config {
 	unsigned int rate_limit;
 
 	char *dn_ip;
+	char *payload;
 } cfg_t;
 
 typedef struct interface interface_t;

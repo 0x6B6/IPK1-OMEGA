@@ -8,14 +8,22 @@
  * 
  ****************************************************************/
 
-#include <errno.h>
-#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <unistd.h>
 #include <sys/ioctl.h>
-#include <net/if.h>
+#include <sys/socket.h>
 #include <linux/if.h>
 #include <linux/if_packet.h>
+#include <fcntl.h>
+#include <net/if.h>
+#include <netinet/tcp.h>
+#include <netinet/udp.h>
+#include <netinet/ip.h>
+#include <netinet/ip6.h>
+#include <netinet/ip_icmp.h>
 
 #include "net_utils.h"
 
@@ -65,10 +73,13 @@ void print_if_flags(unsigned int flags) {
 }
 
 int list_interfaces(struct ifaddrs *ifa) {
+	sa_family_t family;
+	struct sockaddr *address;
 
 	while (ifa) {
 
-		sa_family_t family = ifa->ifa_addr->sa_family;
+		family = ifa->ifa_addr->sa_family;
+		address = ifa->ifa_addr; 
 
 		if (family == AF_INET || family == AF_INET6 || family == AF_PACKET) {
 			printf("Interface: %s\n"
@@ -76,45 +87,8 @@ int list_interfaces(struct ifaddrs *ifa) {
 				   ifa->ifa_name);
 
 			print_if_flags(ifa->ifa_flags);
-
-			 if (ifa->ifa_addr && family == AF_INET) {
-			 	struct sockaddr_in *ipv4 = (struct sockaddr_in*) ifa->ifa_addr;
-			 	char addr_buffer[INET_ADDRSTRLEN];
-			 	
-			 	if (inet_ntop(AF_INET, &ipv4->sin_addr, addr_buffer, sizeof(addr_buffer))) {
-			 		printf("IPv4: %s\n", addr_buffer);
-			 	} else {
-			 		perror("IPv4 inet_ntop");
-			 		return EXIT_FAILURE;
-			 	}
-			 }
-			 else if (ifa->ifa_addr && family == AF_INET6) {
-			 	struct sockaddr_in6 *ipv6 = (struct sockaddr_in6*) ifa->ifa_addr;
-			 	char addr_buffer[INET6_ADDRSTRLEN];
-
-			 	if (inet_ntop(AF_INET6, &ipv6->sin6_addr, addr_buffer, sizeof(addr_buffer))) {
-			 		printf("IPv6: %s\n", addr_buffer);
-			 	} else {
-			 		perror("IPv6 inet_ntop");
-			 		return EXIT_FAILURE;
-			 	}
-			 }
-			 else {
-			 	struct sockaddr_ll *ll = (struct sockaddr_ll*) ifa->ifa_addr;
-			 	unsigned char *mac = ll->sll_addr;
-
-			 	printf("MAC: ");
-			 	
-				 for (int i = 0; i < 6; ++i) {
-				        printf("%02x", mac[i]);
-				        if (i != 5) {
-				            printf(":");
-				        }
-				    }
-				    printf("\n");
-			 }
-
-			putchar('\n');
+			print_addr(address, family);
+			printf("\n\n");
 		} 
 
 		ifa = ifa->ifa_next;
@@ -123,7 +97,7 @@ int list_interfaces(struct ifaddrs *ifa) {
   	return EXIT_SUCCESS;
 }
 
-struct sockaddr* get_ifaddr(struct ifaddrs *ifaddr, const char *interface, unsigned int family) {
+struct sockaddr* get_ifaddr(struct ifaddrs *ifaddr, const char *interface, sa_family_t family) {
 	struct sockaddr *address = NULL;
 
 	while (ifaddr) {
@@ -138,7 +112,54 @@ struct sockaddr* get_ifaddr(struct ifaddrs *ifaddr, const char *interface, unsig
 	return address;
 }
 
-int create_socket(const char *interface, int family, int type, int protocol) {
+/* Todo rewrite to toString() like func */
+int print_addr(struct sockaddr *addr, sa_family_t family) {
+	char addr_buffer[INET6_ADDRSTRLEN]; /* IPv6 length enough for both formats */
+
+	if (family == AF_INET) { /* IPv4 */
+		struct sockaddr_in *ipv4 = (struct sockaddr_in*) addr;
+		
+		if (inet_ntop(AF_INET, &ipv4->sin_addr, addr_buffer, sizeof(addr_buffer))) {
+			 printf("%s", addr_buffer);
+		}
+		else {
+			perror("IPv4 inet_ntop");
+			return EXIT_FAILURE;
+		}
+	}
+	else if (family == AF_INET6) { /* IPv6 */
+		struct sockaddr_in6 *ipv6 = (struct sockaddr_in6*) addr;
+
+		if (inet_ntop(AF_INET6, &ipv6->sin6_addr, addr_buffer, sizeof(addr_buffer))) {
+			printf("%s", addr_buffer);
+		}
+		else {
+			perror("IPv6 inet_ntop");
+			 return EXIT_FAILURE;
+		}
+	}
+	else if (family == AF_PACKET) { /* MAC */
+		struct sockaddr_ll *ll = (struct sockaddr_ll*) addr;
+		
+		unsigned char *mac = ll->sll_addr;
+			 	
+		for (int i = 0; i < 6; ++i) {
+			printf("%02x", mac[i]);
+
+			if (i != 5) {
+				printf(":");
+			}
+		}
+	}
+	else {
+		fprintf(stderr, "ipk-l4-scan: error: Unknown address format\n");
+		return EXIT_FAILURE;
+	}
+
+	return EXIT_SUCCESS;
+}
+
+int create_socket(const char *interface, sa_family_t family, int type, int protocol) {
 	/* Create socket */
 	int fd = socket(family, type, protocol);
 
@@ -152,6 +173,7 @@ int create_socket(const char *interface, int family, int type, int protocol) {
 
 	if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0) {
 		perror("ipk-l4-scan: error: fcntl");
+		close(fd);
 		return -1;
 	}
 
@@ -163,4 +185,133 @@ int create_socket(const char *interface, int family, int type, int protocol) {
 	}
 
 	return fd;
+}
+
+pseudo_ipv4_h create_pseudo_ipv4_h(l4_scanner *scanner, int protocol, uint32_t protocol_h_length) {
+	pseudo_ipv4_h ph = {0};
+	
+	/* Source and destination adresses */
+	ph.ipv4_source_addr = ((struct sockaddr_in *) scanner->source_addr)->sin_addr.s_addr;
+	ph.ipv4_dest_addr = ((struct sockaddr_in *) scanner->destination_addr)->sin_addr.s_addr;
+	
+	/* Zero padding */
+	ph.zeroes = 0; // Zeroes set already, but just to be sure..
+	/* TCP/UDP */
+	ph.protocol = protocol;
+	/* TCP/UDP header length */
+	ph.tcp_udp_length = htons(protocol_h_length);
+
+	return ph;
+}
+
+pseudo_ipv6_h create_pseudo_ipv6_h(l4_scanner *scanner, int protocol, uint32_t protocol_h_length) {
+	pseudo_ipv6_h ph = {0};
+
+	/* Source and destination addreses */
+	memcpy(&ph.ipv6_source_addr, &((struct sockaddr_in6 *) scanner->source_addr)->sin6_addr, sizeof(struct in6_addr));
+	memcpy(&ph.ipv6_dest_addr, &((struct sockaddr_in6 *) scanner->destination_addr)->sin6_addr, sizeof(struct in6_addr));
+	
+	/* Zero padding, memset to zero just to be sure */
+	memset(ph.zeroes, 0, sizeof(ph.zeroes));
+
+	/* TCP/UDP header size */
+	ph.tcp_udp_length = htonl(protocol_h_length);
+	
+	/* TCP/UDP protocol */
+	ph.prot_header = protocol;
+
+	return ph;
+}
+
+int create_header(l4_scanner *scanner, packet *packet, int protocol) {
+	//static uint64_t seq = 0;
+	int offset;
+
+	if (protocol == TCP) {
+		struct tcphdr *tcphdr = (struct tcphdr *) packet;
+
+		tcphdr->th_sport = htons(scanner->source_port);
+		tcphdr->th_dport = htons(scanner->destination_port);
+		tcphdr->th_seq = htonl(0);
+		tcphdr->th_ack = htonl(0);
+		tcphdr->th_off = 5;
+		tcphdr->th_flags = TH_SYN; // SYN !!!
+		tcphdr->th_win = htons(65535);
+		tcphdr->th_sum = 0;
+		tcphdr->th_urp = 0;
+
+		/* checksum here */
+		offset = sizeof(struct tcphdr);
+	} else if (protocol == UDP) {
+		struct udphdr *udphdr = (struct udphdr *) packet;
+
+		udphdr->uh_sport = htons(scanner->source_port);
+		udphdr->uh_dport = htons(scanner->destination_port);
+		udphdr->uh_ulen = htons(sizeof(struct udphdr)); /* + payload, which will be added later hopefully :-) */
+		udphdr->uh_sum = 0;
+
+		/*checksum here*/
+		offset = sizeof(struct udphdr);
+	}
+
+	return offset;
+}
+
+int create_iphdr(l4_scanner *scanner, packet *packet, int protocol, uint32_t protocol_h_length) {
+	/* Create IP HEADER first */
+	int offset = 0;
+
+	if (scanner->family == AF_INET) {
+		struct iphdr *iph = (struct iphdr *) packet;
+
+		iph->ihl = 5;
+		iph->version = 4;
+		iph->tos = 0;
+		iph->tot_len = htons(sizeof(struct iphdr) + protocol_h_length);
+		iph->id = htons(12345);
+		iph->frag_off = 0;
+		iph->ttl = 64;
+		iph->protocol = protocol;
+		iph->check = 0;
+		iph->saddr = ((struct sockaddr_in *) scanner->source_addr)->sin_addr.s_addr;
+		iph->daddr = ((struct sockaddr_in *) scanner->destination_addr)->sin_addr.s_addr;
+
+		offset = sizeof(struct iphdr);
+	}
+	else if (scanner->family == AF_INET6) {
+		struct ip6_hdr *ip6h = (struct ip6_hdr *) packet;
+
+		ip6h->ip6_nxt = protocol;
+		ip6h->ip6_vfc = (6 << 4);
+		ip6h->ip6_plen = htons(protocol_h_length);
+		ip6h->ip6_hlim = 64;
+
+		memcpy(&ip6h->ip6_src, &((struct sockaddr_in6 *) scanner->source_addr)->sin6_addr, sizeof(struct in6_addr));	
+		memcpy(&ip6h->ip6_dst, &((struct sockaddr_in6 *) scanner->destination_addr)->sin6_addr, sizeof(struct in6_addr));
+
+		offset = sizeof(struct ip6_hdr);
+	}
+
+	printf("%d", offset);
+
+	return offset;
+}
+
+/* PACKET ASSEMBLY LINE */
+void packet_assembly(void) {
+	printf("\nPacket assembly is happening:\n");
+
+	printf("Creating pseudo ip header\n");
+
+	printf("Creating corresponding protocol header\n");
+
+	printf("Calculating checksum\n");
+
+	printf("Creating corresponding ip header\n");
+
+	printf("Calculating ip checksum\n");
+
+	printf("Packet succesfuly assembled\n\n");
+
+	return;
 }
