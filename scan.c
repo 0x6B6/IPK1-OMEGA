@@ -22,42 +22,51 @@
 #include "opts.h"
 #include "net_utils.h"
 
-#define SOURCE_PORT 12345 // Should be randomized, fix later
+#define SOURCE_PORT 12345 // Should be randomized?, perhaps rework later
+
+void debug_packet(char unsigned* address, int length) {
+	printf("Packet length: %d\n", length);
+
+	for (int i = 0; i < length; ++i) {
+		printf("%02X ", address[i]);
+	}
+	putchar('\n');
+}
 
 int start_scan(cfg_t *cfg) {
-	struct addrinfo *addrinfo, hints = {0};
+	l4_scanner s = {0};								// Init. of scanner struct
+	struct addrinfo *addrinfo, *ai, hints = {0};	// Host address info
+	struct sockaddr *source_addr;					// Source address
+	socklen_t sa_len = sizeof(struct sockaddr);		// Source address length
 
 	/* Get host address info */
 	if (getaddrinfo(cfg->dn_ip, NULL, &hints, &addrinfo) != 0) {
 		fprintf(stderr, "ipk-l4-scan: error: Unable to get host %s address information!\n", cfg->dn_ip);
 		return EXIT_FAILURE;
 	}
-	hints = hints; // Remove later, maybe useful?
-	
-	/* Iterate through all host ip addresses */
-	struct addrinfo *ai = addrinfo; // Temporary variable, preserve head of LL struct
-	struct sockaddr *src_addr;		// Generic source address
-	socklen_t src_len = sizeof(struct sockaddr);
-	l4_scanner s = {0};	// Init. of scanner struct
 
+	hints = hints; // Remove later, maybe useful?
+	ai = addrinfo; // Temporary variable, preserve head of LL struct
+
+	/* Iterate through all host ip addresses */
 	while (ai) {
 		/* Get source address of given (client) interface corresponding to given host address family */
-		if((src_addr = get_ifaddr(cfg->ifaddr, cfg->interface, ai->ai_addr->sa_family)) == NULL){
+		if((source_addr = get_ifaddr(cfg->ifaddr, cfg->interface, ai->ai_addr->sa_family)) == NULL){
 			printf("ipk-l4-scan: error: Unable to get interface (source) address\n");
 			return EXIT_FAILURE;
 		}
 
 		/* Scanner setup */
-		s.source_addr = src_addr;
-		s.source_addr_len = src_len;
-		s.source_port = SOURCE_PORT;
+		s.source_addr = source_addr;
+		s.source_addr_len = sa_len;
 
+		s.source_port = SOURCE_PORT;
 		s.family = ai->ai_addr->sa_family;
+
 		s.destination_addr = ai->ai_addr;
 		s.destination_addr_len = ai->ai_addrlen;
 
 		printf("Interesting ports on %s ", cfg->dn_ip);
-
 		putchar('(');
 
 		if(print_addr(ai->ai_addr, ai->ai_addr->sa_family)) {
@@ -66,17 +75,24 @@ int start_scan(cfg_t *cfg) {
 		}
 
 		putchar(')');
-
 		printf(":\nPORT STATE\n");
 
 		/* Iterate given ports and scan by using corresponding protocol */
-		process_ports(cfg, &s, TCP);
-		process_ports(cfg, &s, UDP);
+		if (process_ports(cfg, &s, TCP)) {
+			return EXIT_FAILURE;
+		}
+		
+		if (process_ports(cfg, &s, UDP)) {
+			return EXIT_FAILURE;
+		}
 
 		ai = ai->ai_next;
+
+		break; //!!! FIX THIS ISSUE
 	}
 
 	close(s.socket_fd);
+
 	freeaddrinfo(addrinfo);
 
 	return EXIT_SUCCESS;
@@ -115,26 +131,101 @@ int process_ports(cfg_t *cfg, l4_scanner *scanner, int protocol) {
 		{
 			printf("%d/%s ", port, prot_str);
 			scanner->destination_port = port;
-			port_scan(cfg, scanner, port);
+
+			if(port_scan(cfg, scanner, protocol)) {
+				fprintf(stderr, "ipk-l4-scan: error: port scan\n");
+				return EXIT_FAILURE;
+			}
 		}
 	}
 	else if (ports.access_type == P_LIST) {
 		for (size_t i = 0; i < ports.list_length; ++i)
 		{
 			unsigned int port = ports.port_list[i];
-			printf("%d/%s ?\n", port, prot_str);
+			printf("%d/%s ", port, prot_str);
 			scanner->destination_port = port;
-			port_scan(cfg, scanner, port);
+
+			if (port_scan(cfg, scanner, protocol)) {
+				fprintf(stderr, "ipk-l4-scan: error: port scan\n");
+				return EXIT_FAILURE;
+			}
 		}
 	}
 
 	return EXIT_SUCCESS;
 }
 
-int port_scan(cfg_t *cfg, l4_scanner *scanner, int port) {
-	cfg=cfg; scanner=scanner; port=port;
+int port_scan(cfg_t *cfg, l4_scanner *scanner, int protocol) {
+	struct pollfd pfd = {0};
+	packet query_packet = {0}, response_packet = {0};
+	int /*recv_socket_fd = 0,*/ retry = 1, size = 0, iphdr_offset = 0;
 
-	packet_assembly();
+	/* Set poll to receive */
+	pfd.fd = scanner->socket_fd;
+	pfd.events = POLLIN;
 	
+	size = packet_assembly(scanner, query_packet, protocol, &iphdr_offset);
+
+	int sr = sendto(scanner->socket_fd, query_packet + iphdr_offset, size - iphdr_offset, 0, scanner->destination_addr, scanner->destination_addr_len); // FIX
+
+	if (sr < 0) {
+		perror("ipk-l4-scan: error: sendto");
+		return EXIT_FAILURE;
+	}
+
+	/* Poll and handle response */
+	while (1) {
+		int rs = poll(&pfd, 1, cfg->timeout);
+
+		if (rs < 0) {
+			fprintf(stderr, "ipk-l4-scan: error: poll failure");
+			break;
+		}
+
+		/* No response */
+		if (rs == 0) {
+			if (retry) {
+				/* Resending packet */
+
+				sr = sendto(scanner->socket_fd, query_packet + iphdr_offset, size - iphdr_offset, 0, scanner->destination_addr, scanner->destination_addr_len);
+
+					if (sr < 0) {
+						perror("ipk-l4-scan: error: sendto");
+						return EXIT_FAILURE;
+					}
+
+				--retry;
+				continue;
+			}
+
+			printf("filtered\n");
+			break;
+		}
+		/* Response received */
+		else {
+			struct sockaddr source_address;
+			socklen_t sa_len = sizeof(source_address);
+
+			int rr = recvfrom(scanner->socket_fd, response_packet, PACKET_SIZE, 0, &source_address, &sa_len);
+			
+			if (rr < 0) {
+				perror("ipk-l4-scan: error: recvfrom");
+				return EXIT_FAILURE;
+			}
+
+			unsigned char *bp = response_packet + iphdr_offset; /* Base pointer */
+			uint16_t source_port = ntohs(*(uint16_t*)bp);
+
+			/* Response packet filter and extraction */
+			if (filter_addresses(&source_address, scanner->destination_addr, scanner->family) == 0 && 
+				filter_ports(source_port, scanner->destination_port) == 0) {
+				
+				extract_data(bp, protocol);
+
+				break;
+			}
+		}
+	}
+
 	return EXIT_SUCCESS;
 }

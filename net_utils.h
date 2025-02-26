@@ -104,19 +104,25 @@ struct sockaddr* get_ifaddr(struct ifaddrs *ifaddr, const char *interface, sa_fa
  */
 
 /* TCP/UDP header */
-int create_header(l4_scanner *scanner, packet *packet, int protocol);
+int create_prot_header(l4_scanner *scanner, unsigned char *packet, int protocol);
 
 /* Pseudo headers */
 pseudo_ipv4_h create_pseudo_ipv4_h(l4_scanner *scanner, int protocol, uint32_t protocol_h_length);
 pseudo_ipv6_h create_pseudo_ipv6_h(l4_scanner *scanner, int protocol, uint32_t protocol_h_length);
 
 /* Calculate checksum */
-int calculate_checksum(void);
+uint16_t calculate_checksum(void *data, size_t size);
 
 /* IPv4/IPv6 header */
-int create_iphdr(l4_scanner *scanner, packet *packet, int protocol, uint32_t protocol_h_length);
+int create_iphdr(l4_scanner *scanner, unsigned char *packet, int protocol, uint32_t protocol_h_length);
 
 /* Packet assembly line main function, need to pay attention to offsets */
-void packet_assembly(void);
+int packet_assembly(l4_scanner *scanner, unsigned char *packet, int protocol, int *iphdr_offset);
+
+int filter_addresses(struct sockaddr *source, struct sockaddr *destination, sa_family_t family);
+
+int filter_ports(uint16_t port1, uint16_t port2);
+
+void extract_data(unsigned char *packet, int protocol);
 
 #endif

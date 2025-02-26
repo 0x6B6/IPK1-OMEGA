@@ -14,18 +14,15 @@
 #include <sys/types.h>
 
 #include "opts.h"
-#include "net_utils.h"
 
 /* L4 Scanner Structure */
 typedef struct l4_scanner {
 	int socket_fd;						// Socket file descriptor
 
-	packet s_packet, r_packet;			// Send packet, Receive packet
-
 	uint16_t source_port;				// Source port (randomized)
 	uint16_t destination_port;			// Destination port (selected by input)
 
-	sa_family_t family;					// Address family
+	sa_family_t family;					// Address family (IPv4/IPv6)
 
 	struct sockaddr *source_addr;		// Source address (selected interface)
 	struct sockaddr *destination_addr;	// Destination address (derived from host(s) address or domain name)
@@ -47,6 +44,6 @@ int process_ports(cfg_t *cfg, l4_scanner *scanner, int protocol);
 /* Last part of the scan process, at this stage every information needed is collected,
  * all thats left is to scan the selected port(s) and analyze the response.
  */
-int port_scan(cfg_t *cfg, l4_scanner *scanner, int port);
+int port_scan(cfg_t *cfg, l4_scanner *scanner, int protocol);
 
 #endif
