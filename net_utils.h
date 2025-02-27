@@ -121,8 +121,8 @@ int packet_assembly(l4_scanner *scanner, unsigned char *packet, int protocol, in
 
 int filter_addresses(struct sockaddr *source, struct sockaddr *destination, sa_family_t family);
 
-int filter_ports(uint16_t port1, uint16_t port2);
+int filter_ports(uint16_t source, uint16_t destination);
 
-void extract_data(unsigned char *packet, int protocol);
+int extract_data(unsigned char *packet, uint16_t destination_port, sa_family_t family, int protocol, int iphdr_offset);
 
 #endif

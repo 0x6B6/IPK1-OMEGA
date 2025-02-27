@@ -24,7 +24,7 @@
 
 #define SOURCE_PORT 12345 // Should be randomized?, perhaps rework later
 
-void debug_packet(char unsigned* address, int length) {
+void hexdump_packet(char unsigned* address, int length) {
 	printf("Packet length: %d\n", length);
 
 	for (int i = 0; i < length; ++i) {
@@ -88,7 +88,7 @@ int start_scan(cfg_t *cfg) {
 
 		ai = ai->ai_next;
 
-		break; //!!! FIX THIS ISSUE
+		//break; //!!! FIX THIS ISSUE
 	}
 
 	close(s.socket_fd);
@@ -158,10 +158,22 @@ int process_ports(cfg_t *cfg, l4_scanner *scanner, int protocol) {
 int port_scan(cfg_t *cfg, l4_scanner *scanner, int protocol) {
 	struct pollfd pfd = {0};
 	packet query_packet = {0}, response_packet = {0};
-	int /*recv_socket_fd = 0,*/ retry = 1, size = 0, iphdr_offset = 0;
+	int recv_socket_fd, retry = 1, size = 0, iphdr_offset = 0;
 
-	/* Set poll to receive */
-	pfd.fd = scanner->socket_fd;
+	/* Set receive socket */
+	if (protocol == TCP) {
+		recv_socket_fd = scanner->socket_fd;
+	}
+
+	if (protocol == UDP) {
+		if ((recv_socket_fd = create_socket(cfg->interface, scanner->family, SOCK_RAW, scanner->family == AF_INET ? IPPROTO_ICMP : IPPROTO_ICMPV6)) < 0) {
+			fprintf(stderr, "ipk-l4-scan: error: Invalid socket file descriptor");
+			return EXIT_FAILURE;
+		}
+	}
+
+	/* Set poll to receive from recv socket */
+	pfd.fd = recv_socket_fd;
 	pfd.events = POLLIN;
 	
 	size = packet_assembly(scanner, query_packet, protocol, &iphdr_offset);
@@ -198,7 +210,7 @@ int port_scan(cfg_t *cfg, l4_scanner *scanner, int protocol) {
 				continue;
 			}
 
-			printf("filtered\n");
+			printf("%s\n", protocol == TCP ? "filtered" : "open|filtered");
 			break;
 		}
 		/* Response received */
@@ -206,23 +218,20 @@ int port_scan(cfg_t *cfg, l4_scanner *scanner, int protocol) {
 			struct sockaddr source_address;
 			socklen_t sa_len = sizeof(source_address);
 
-			int rr = recvfrom(scanner->socket_fd, response_packet, PACKET_SIZE, 0, &source_address, &sa_len);
+			int rr = recvfrom(recv_socket_fd, response_packet, PACKET_SIZE, 0, &source_address, &sa_len);
 			
 			if (rr < 0) {
 				perror("ipk-l4-scan: error: recvfrom");
 				return EXIT_FAILURE;
 			}
 
-			unsigned char *bp = response_packet + iphdr_offset; /* Base pointer */
-			uint16_t source_port = ntohs(*(uint16_t*)bp);
+			unsigned char *bp = response_packet + iphdr_offset; /* Base pointer (Skip over ip header) */
 
-			/* Response packet filter and extraction */
-			if (filter_addresses(&source_address, scanner->destination_addr, scanner->family) == 0 && 
-				filter_ports(source_port, scanner->destination_port) == 0) {
-				
-				extract_data(bp, protocol);
-
-				break;
+			/* Response packet filter and data extraction */
+			if (filter_addresses(&source_address, scanner->destination_addr, scanner->family) == 0) {
+				if (extract_data(bp, scanner->destination_port, scanner->family, protocol, iphdr_offset) == 0) {
+					break;
+				}
 			}
 		}
 	}

@@ -13,9 +13,9 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <unistd.h>
+
 #include <sys/ioctl.h>
 #include <sys/socket.h>
-//#include <linux/if.h>
 #include <linux/if_packet.h>
 #include <fcntl.h>
 #include <net/if.h>
@@ -24,6 +24,7 @@
 #include <netinet/ip.h>
 #include <netinet/ip6.h>
 #include <netinet/ip_icmp.h>
+#include <netinet/icmp6.h>
 
 #include "net_utils.h"
 
@@ -431,26 +432,61 @@ int filter_addresses(struct sockaddr *source, struct sockaddr *destination, sa_f
 	return EXIT_SUCCESS;
 }
 
-int filter_ports(uint16_t port1, uint16_t port2) {
-	if (port1 != port2) {
+int filter_ports(uint16_t source, uint16_t destination) {
+	if (ntohs(source) != destination) {
 		return EXIT_FAILURE;
 	}
 
 	return EXIT_SUCCESS;
 }
 
-void extract_data(unsigned char *packet, int protocol) {
+int extract_data(unsigned char *packet, uint16_t destination_port, sa_family_t family, int protocol, int iphdr_offset) {
 	if (protocol == TCP) {
-		struct tcphdr *t;
-		t = (struct tcphdr *) packet;
+		struct tcphdr *t = (struct tcphdr *) packet;
 
-		printf(" [%d] ", t->th_flags);
+		if (filter_ports(t->th_sport, destination_port)) {
+			return EXIT_FAILURE;
+		}
+
 		if(t->th_flags & TH_SYN && t->th_flags & TH_ACK) {
-			printf("open (SYN)\n");
+			printf("open [SYN, ACK]\n");
 		}
 		else if(t->th_flags & TH_RST && t->th_flags & TH_ACK) {
-			printf("closed (RST)\n");
+			printf("closed [RST, ACK]\n");
 		}
 		else printf("filtered\n");	
 	}
+
+	if (protocol == UDP) {
+		struct udphdr *u;
+		int icmp_offset = 0;
+
+		if (family == AF_INET) {
+			struct icmphdr *icmp = (struct icmphdr *) packet;
+			icmp_offset = sizeof(struct icmphdr);
+			
+			if (icmp->type != ICMP_DEST_UNREACH || icmp->code != ICMP_PORT_UNREACH) {
+				return EXIT_FAILURE;
+			}
+		}
+		
+		if (family == AF_INET6) {
+			struct icmp6_hdr *icmp6 = (struct icmp6_hdr*) packet;
+			icmp_offset = sizeof(struct icmp6_hdr);
+
+			if (icmp6->icmp6_type != ICMP6_DST_UNREACH || icmp6->icmp6_code != ICMP6_DST_UNREACH_NOPORT) {
+				return EXIT_FAILURE;
+			}
+		}
+
+		u = (struct udphdr *) (packet + icmp_offset + iphdr_offset);
+
+		if (filter_ports(u->uh_dport, destination_port)) {
+			return EXIT_FAILURE;
+		}
+
+		printf("closed [ICMP]\n");
+	}
+
+	return EXIT_SUCCESS;
 }
