@@ -2,6 +2,7 @@ CC = gcc
 CFLAGS = -std=c17 -Wall -Wextra -Werror -D_GNU_SOURCE
 
 EXECUTABLE = ipk-l4-scan
+LOGIN = xpazurm00
 
 all: $(EXECUTABLE)
 	@echo "Project compiled successfuly!"
@@ -17,5 +18,8 @@ run:
 
 clean:
 	rm -f *.o $(EXECUTABLE)
+
+zip:
+	zip $(LOGIN).zip *.c *.h README.md Makefile CHANGELOD.md
 
 .PHONY: all run clean

@@ -450,6 +450,7 @@ uint16_t calculate_checksum(void *addr, size_t size) {
 	return checksum;
 }
 
+/* Filters out the addresses */
 int filter_addresses(struct sockaddr *source, struct sockaddr *destination, sa_family_t family) {
 	int not_equal = 1;
 
@@ -474,6 +475,7 @@ int filter_addresses(struct sockaddr *source, struct sockaddr *destination, sa_f
 	return EXIT_SUCCESS;
 }
 
+/* Filters out the ports */
 int filter_ports(uint16_t source, uint16_t destination) {
 	if (ntohs(source) != destination) {
 		return EXIT_FAILURE;
@@ -482,6 +484,7 @@ int filter_ports(uint16_t source, uint16_t destination) {
 	return EXIT_SUCCESS;
 }
 
+/* Extracts packet data and evaluates response */
 int extract_data(unsigned char *packet, uint16_t destination_port, sa_family_t family, int protocol, int iphdr_offset) {
 	if (protocol == TCP) {
 		struct tcphdr *t = (struct tcphdr *) packet;
