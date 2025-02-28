@@ -31,8 +31,13 @@ typedef struct l4_scanner {
 	socklen_t destination_addr_len;		// Destination address length
 } l4_scanner;
 
-/* Initialisation and release of resources */
-void init_scanner(l4_scanner *scanner);
+/* Sets up scanner structure */
+void set_scanner(l4_scanner *s,
+						struct sockaddr *source_addr,
+						struct sockaddr *dest_addr,
+						socklen_t source_addr_len,
+						socklen_t dest_addr_len,
+						sa_family_t family);
 
 /* Starting point scan function */
 int start_scan(cfg_t *cfg);

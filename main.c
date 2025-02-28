@@ -48,7 +48,7 @@ int main(int argc, char *argv[]) {
 
 	/* Starting point of the scanning process */
 	if (start_scan(&cfg)) {
-		fprintf(stderr, "ipk-l4-scan: error: Scanner failure\n");
+		fprintf(stderr, "ipk-l4-scan: error: scanner failure\n");
 		free_cfg(&cfg);
 		return EXIT_FAILURE;
 	}

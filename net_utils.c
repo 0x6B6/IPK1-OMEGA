@@ -28,6 +28,16 @@
 
 #include "net_utils.h"
 
+/* Hex dumps packet content */
+void hexdump_packet(char unsigned* address, int length) {
+	printf("Packet length: %d\n\nHex dump:\n", length);
+
+	for (int i = 0; i < length; ++i) {
+		printf("%02X ", address[i]);
+	}
+	putchar('\n');
+}
+
 /* Puts a pointer to dynamically allocated LL interface 
  *structure in the scan program configuration structure.
  */
@@ -79,6 +89,9 @@ int list_interfaces(struct ifaddrs *ifa) {
 	sa_family_t family;
 	struct sockaddr *address;
 	struct ifaddrs *ifa_hd = ifa;
+	char addr_str[64];
+
+	printf("Active interfaces:\n\n");
 
 	while (ifa) {
 
@@ -91,8 +104,16 @@ int list_interfaces(struct ifaddrs *ifa) {
 				   ifa->ifa_name);
 
 			print_if_flags(ifa->ifa_flags);
-			print_addr(address, family);
-			printf("\n\n");
+
+			if (family == AF_INET)
+				printf("IPv4: ");
+			else if (family == AF_INET6)
+				printf("IPv6: ");
+			else 
+				printf("MAC: ");
+
+			addr_to_string(address, family, addr_str, sizeof(addr_str));
+			printf("%s\n\n", addr_str);
 		} 
 
 		ifa = ifa->ifa_next;
@@ -119,42 +140,37 @@ struct sockaddr* get_ifaddr(struct ifaddrs *ifaddr, const char *interface, sa_fa
 	return address;
 }
 
-/* FIX rewrite to toString() like func */
-int print_addr(struct sockaddr *addr, sa_family_t family) {
-	char addr_buffer[INET6_ADDRSTRLEN]; /* IPv6 length enough for both formats */
-
-	if (family == AF_INET) { /* IPv4 */
+/* Converts IPv4/IPv6/MAC adresses from binary to ASCII characters and assigns them to given buffer */
+int addr_to_string(struct sockaddr *addr, sa_family_t family, char *buf, size_t len) {
+	/* IPv4 */
+	if (family == AF_INET) {
 		struct sockaddr_in *ipv4 = (struct sockaddr_in*) addr;
 		
-		if (inet_ntop(AF_INET, &ipv4->sin_addr, addr_buffer, sizeof(addr_buffer))) {
-			 printf("%s", addr_buffer);
-		}
-		else {
+		if (inet_ntop(AF_INET, &ipv4->sin_addr, buf, len) == NULL) {
 			perror("IPv4 inet_ntop");
 			return EXIT_FAILURE;
 		}
 	}
-	else if (family == AF_INET6) { /* IPv6 */
+	/* IPv6 */
+	else if (family == AF_INET6) {
 		struct sockaddr_in6 *ipv6 = (struct sockaddr_in6*) addr;
 
-		if (inet_ntop(AF_INET6, &ipv6->sin6_addr, addr_buffer, sizeof(addr_buffer))) {
-			printf("%s", addr_buffer);
-		}
-		else {
+		if (inet_ntop(AF_INET6, &ipv6->sin6_addr, buf, len) == NULL) {
 			perror("IPv6 inet_ntop");
 			 return EXIT_FAILURE;
 		}
 	}
-	else if (family == AF_PACKET) { /* MAC */
+	/* MAC */
+	else if (family == AF_PACKET) { 
 		struct sockaddr_ll *ll = (struct sockaddr_ll*) addr;
-		
 		unsigned char *mac = ll->sll_addr;
+		char *str = buf;
 			 	
 		for (int i = 0; i < 6; ++i) {
-			printf("%02x", mac[i]);
+			str += snprintf(str, len, "%02x", mac[i]);
 
 			if (i != 5) {
-				printf(":");
+				(*str++)= ':';
 			}
 		}
 	}
@@ -324,7 +340,7 @@ int create_prot_header(l4_scanner *scanner, unsigned char *packet, int protocol)
 
 			uint8_t buffer[sizeof(struct pseudo_ipv6_h) + sizeof(struct udphdr)];
 			memcpy(buffer, &ipv6_ph, sizeof(pseudo_ipv6_h));
-			memcpy(buffer + sizeof(struct pseudo_ipv4_h), udphdr, sizeof(struct udphdr));
+			memcpy(buffer + sizeof(struct pseudo_ipv6_h), udphdr, sizeof(struct udphdr));
 
 			udphdr->uh_sum = calculate_checksum(buffer, sizeof(buffer));
 		}

@@ -64,8 +64,11 @@ typedef struct pseudo_ipv6_h {
  * General utility functions
  */
 
-/* Prints given addresses by their family type (IPv4, IPv6, MAC) */
-int print_addr(struct sockaddr *addr, sa_family_t family);
+/* Hex dumps packet content */
+void hexdump_packet(char unsigned* address, int length);
+
+/* Prints given addresses by their family type (IPv4, IPv6, MAC) to string */
+int addr_to_string(struct sockaddr *addr, sa_family_t family, char *buf, size_t len);
 
 /* Create socket, specified by address family, type protocol, thats bound to given interface */
 int create_socket(const char *interface, sa_family_t family, int type, int protocol);
@@ -92,7 +95,7 @@ struct sockaddr* get_ifaddr(struct ifaddrs *ifaddr, const char *interface, sa_fa
 /***
  * Packet assembly pipeline
  * 
- * Protocol TCP/UDP header --> Pseudo IPv4/IPv6 header --> Checksum --> IPv4/IPv6 header --> Packet Assembly Finish Line
+ * Protocol TCP/UDP header --> Pseudo IPv4/IPv6 header --> Checksum --> IPv4/IPv6 header --> Ready packet
  * 
  * Memory layout of a packet:
  * 
