@@ -25,7 +25,7 @@
 #define SOURCE_PORT 12345 // Should be randomized?, perhaps rework later
 
 void hexdump_packet(char unsigned* address, int length) {
-	printf("Packet length: %d\n", length);
+	printf("Packet length: %d\n\nHex dump:\n", length);
 
 	for (int i = 0; i < length; ++i) {
 		printf("%02X ", address[i]);
@@ -39,20 +39,22 @@ int start_scan(cfg_t *cfg) {
 	struct sockaddr *source_addr;					// Source address
 	socklen_t sa_len = sizeof(struct sockaddr);		// Source address length
 
+	hints.ai_socktype = SOCK_RAW;	// Set this to filter addresses with raw sockets, otherwise the list will contain duplicate addresses (other socket types) 
+
 	/* Get host address info */
 	if (getaddrinfo(cfg->dn_ip, NULL, &hints, &addrinfo) != 0) {
-		fprintf(stderr, "ipk-l4-scan: error: Unable to get host %s address information!\n", cfg->dn_ip);
+		fprintf(stderr, "ipk-l4-scan: error: Unable to get host (%s) address information\n", cfg->dn_ip);
 		return EXIT_FAILURE;
 	}
 
-	hints = hints; // Remove later, maybe useful?
-	ai = addrinfo; // Temporary variable, preserve head of LL struct
+	ai = addrinfo; // Temporary variable to preserve head of LL struct
 
 	/* Iterate through all host ip addresses */
 	while (ai) {
-		/* Get source address of given (client) interface corresponding to given host address family */
-		if((source_addr = get_ifaddr(cfg->ifaddr, cfg->interface, ai->ai_addr->sa_family)) == NULL){
-			printf("ipk-l4-scan: error: Unable to get interface (source) address\n");
+		/* Get (client) source address of the given interface, corresponding to the host family address */
+		if ((source_addr = get_ifaddr(cfg->ifaddr, cfg->interface, ai->ai_addr->sa_family)) == NULL){
+			printf("ipk-l4-scan: error: Unable to get interface (%s) source address\n", cfg->interface);
+			freeaddrinfo(addrinfo);
 			return EXIT_FAILURE;
 		}
 
@@ -71,28 +73,23 @@ int start_scan(cfg_t *cfg) {
 
 		if(print_addr(ai->ai_addr, ai->ai_addr->sa_family)) {
 			fprintf(stderr, "ipk-l4-scan: error: Scan failure\n");
+			freeaddrinfo(addrinfo);
 			return EXIT_FAILURE;
 		}
 
 		putchar(')');
 		printf(":\nPORT STATE\n");
 
-		/* Iterate given ports and scan by using corresponding protocol */
-		if (process_ports(cfg, &s, TCP)) {
+		/* Iterate given ports and scan them by using corresponding protocol procedures */
+		if (process_ports(cfg, &s, TCP) || process_ports(cfg, &s, UDP)) {
+			freeaddrinfo(addrinfo);
 			return EXIT_FAILURE;
 		}
 		
-		if (process_ports(cfg, &s, UDP)) {
-			return EXIT_FAILURE;
-		}
-
 		ai = ai->ai_next;
-
-		//break; //!!! FIX THIS ISSUE
 	}
 
 	close(s.socket_fd);
-
 	freeaddrinfo(addrinfo);
 
 	return EXIT_SUCCESS;
@@ -120,7 +117,7 @@ int process_ports(cfg_t *cfg, l4_scanner *scanner, int protocol) {
 	}
 
 	/* Create RAW socket for given interface & port & address family */
-	if((scanner->socket_fd = create_socket(cfg->interface, scanner->source_addr->sa_family, SOCK_RAW, prot_socket)) < 0) {
+	if ((scanner->socket_fd = create_socket(cfg->interface, scanner->source_addr->sa_family, SOCK_RAW, prot_socket)) < 0) {
 		fprintf(stderr, "ipk-l4-scan: error: Invalid socket file descriptor!\n");
 		return EXIT_FAILURE;
 	}
@@ -191,14 +188,13 @@ int port_scan(cfg_t *cfg, l4_scanner *scanner, int protocol) {
 
 		if (rs < 0) {
 			fprintf(stderr, "ipk-l4-scan: error: poll failure");
-			break;
+			return EXIT_FAILURE;
 		}
 
 		/* No response */
 		if (rs == 0) {
 			if (retry) {
 				/* Resending packet */
-
 				sr = sendto(scanner->socket_fd, query_packet + iphdr_offset, size - iphdr_offset, 0, scanner->destination_addr, scanner->destination_addr_len);
 
 					if (sr < 0) {

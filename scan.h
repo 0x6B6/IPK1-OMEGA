@@ -33,7 +33,6 @@ typedef struct l4_scanner {
 
 /* Initialisation and release of resources */
 void init_scanner(l4_scanner *scanner);
-void free_scanner(l4_scanner *scanner);
 
 /* Starting point scan function */
 int start_scan(cfg_t *cfg);

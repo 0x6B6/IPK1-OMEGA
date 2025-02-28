@@ -70,6 +70,9 @@ int print_addr(struct sockaddr *addr, sa_family_t family);
 /* Create socket, specified by address family, type protocol, thats bound to given interface */
 int create_socket(const char *interface, sa_family_t family, int type, int protocol);
 
+/* Close socket file descriptors, it is necessary to distinguish them */
+void close_socket_fd(int send_fd, int recv_fd);
+
 /*** 
  * Interface functions
  */
@@ -116,7 +119,7 @@ uint16_t calculate_checksum(void *data, size_t size);
 /* IPv4/IPv6 header */
 int create_iphdr(l4_scanner *scanner, unsigned char *packet, int protocol, uint32_t protocol_h_length);
 
-/* Packet assembly line main function, need to pay attention to offsets */
+/* Packet assembly line */
 int packet_assembly(l4_scanner *scanner, unsigned char *packet, int protocol, int *iphdr_offset);
 
 int filter_addresses(struct sockaddr *source, struct sockaddr *destination, sa_family_t family);

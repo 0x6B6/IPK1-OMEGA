@@ -31,7 +31,9 @@ int main(int argc, char *argv[]) {
 	init_cfg(&cfg);
 
 	/* Fetch device interfaces LL */
-	get_interfaces(&cfg);
+	if (get_interfaces(&cfg)) {
+		return EXIT_FAILURE;
+	}
 
 	if (argc == 1) { // Has no parameters, lists network interfaces and ends, frees resources
 		return list_interfaces(cfg.ifaddr);
@@ -46,7 +48,7 @@ int main(int argc, char *argv[]) {
 
 	/* Starting point of the scanning process */
 	if (start_scan(&cfg)) {
-		fprintf(stderr, "ipk-l4-scan: error: Unable to ");
+		fprintf(stderr, "ipk-l4-scan: error: Scanner failure\n");
 		free_cfg(&cfg);
 		return EXIT_FAILURE;
 	}

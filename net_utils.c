@@ -67,9 +67,6 @@ void print_if_flags(unsigned int flags) {
 	if (flags & IFF_DYNAMIC) {
 		printf("DYNAMIC ");
 	}
-/*	if (flags & IFF_LOWER_UP) {
-		printf("LOWER_UP ");
-	}*/
 	if (flags & IFF_PORTSEL) {
 		printf("PORTSEL ");
 	}
@@ -77,7 +74,7 @@ void print_if_flags(unsigned int flags) {
 	putchar('\n');
 }
 
-/* Prints a list with information about interfaces */
+/* FIX Prints a list with information about interfaces */
 int list_interfaces(struct ifaddrs *ifa) {
 	sa_family_t family;
 	struct sockaddr *address;
@@ -106,7 +103,7 @@ int list_interfaces(struct ifaddrs *ifa) {
   	return EXIT_SUCCESS;
 }
 
-/* Returns interface IPv4/IPv6 address */
+/* Returns interface IPv4/IPv6 (source) address */
 struct sockaddr* get_ifaddr(struct ifaddrs *ifaddr, const char *interface, sa_family_t family) {
 	struct sockaddr *address = NULL;
 
@@ -122,7 +119,7 @@ struct sockaddr* get_ifaddr(struct ifaddrs *ifaddr, const char *interface, sa_fa
 	return address;
 }
 
-/* Todo FIX rewrite to toString() like func */
+/* FIX rewrite to toString() like func */
 int print_addr(struct sockaddr *addr, sa_family_t family) {
 	char addr_buffer[INET6_ADDRSTRLEN]; /* IPv6 length enough for both formats */
 
@@ -198,8 +195,30 @@ int create_socket(const char *interface, sa_family_t family, int type, int proto
 	return fd;
 }
 
+/* Closes socket file descriptors */
+void close_socket_fd(int send_fd, int recv_fd) {
+	if (send_fd < 0 || recv_fd < 0) {
+		return;
+	}
+
+	if (send_fd == recv_fd) {
+		if (close(send_fd) == -1) {
+			perror("ipk-l4-scan: error: close() send_socket_fd");
+		}
+	}
+	else {
+		if (close(send_fd) == -1) {
+			perror("ipk-l4-scan: error: close() send_socket_fd");
+		}
+		if (close(recv_fd) == -1) {
+			perror("ipk-l4-scan: error: close() recv_socket_fd");
+		}
+	}
+}
+
 /* Pseudo IPv4 header */
 pseudo_ipv4_h create_pseudo_ipv4_h(l4_scanner *scanner, int protocol, uint32_t protocol_h_length) {
+	/* Initialize to 0 */
 	pseudo_ipv4_h ph = {0};
 	
 	/* Source and destination adresses */
@@ -220,9 +239,16 @@ pseudo_ipv4_h create_pseudo_ipv4_h(l4_scanner *scanner, int protocol, uint32_t p
 pseudo_ipv6_h create_pseudo_ipv6_h(l4_scanner *scanner, int protocol, uint32_t protocol_h_length) {
 	pseudo_ipv6_h ph = {0};
 
-	/* Source and destination addreses */
-	memcpy(&ph.ipv6_source_addr, &((struct sockaddr_in6 *) scanner->source_addr)->sin6_addr, sizeof(struct in6_addr)); // Needs to be memcpied, since its 16 bytes of memory
-	memcpy(&ph.ipv6_dest_addr, &((struct sockaddr_in6 *) scanner->destination_addr)->sin6_addr, sizeof(struct in6_addr)); // Same as above
+	/* Source and destination addreses (Needs to be memcpied, since IPv6 is 16 bytes of memory) */
+	memcpy(&ph.ipv6_source_addr,
+		   &((struct sockaddr_in6 *) scanner->source_addr)->sin6_addr,
+		   sizeof(struct in6_addr)
+		   );
+
+	memcpy(&ph.ipv6_dest_addr,
+		   &((struct sockaddr_in6 *) scanner->destination_addr)->sin6_addr,
+		   sizeof(struct in6_addr)
+		   );
 	
 	/* Zero padding, memset to zero just to be sure */
 	memset(ph.zeroes, 0, sizeof(uint8_t) * 3);
@@ -238,7 +264,7 @@ pseudo_ipv6_h create_pseudo_ipv6_h(l4_scanner *scanner, int protocol, uint32_t p
 
 /* TCP/UDP header */
 int create_prot_header(l4_scanner *scanner, unsigned char *packet, int protocol) {
-	int offset;
+	int offset = 0;	// Protocol header size offset
 
 	if (protocol == TCP) {
 		struct tcphdr *tcphdr = (struct tcphdr *) packet;
@@ -351,7 +377,7 @@ int create_iphdr(l4_scanner *scanner, unsigned char *packet, int protocol, uint3
 	return offset;
 }
 
-/* PACKET ASSEMBLY LINE */
+/* Packet assembly */
 int packet_assembly(l4_scanner *scanner, unsigned char *packet, int protocol, int *iphdr_offset) {
 	int packet_size = 0, prot_hdr_size = 0, ip_hdr_size = 0;
 
@@ -409,7 +435,7 @@ uint16_t calculate_checksum(void *addr, size_t size) {
 }
 
 int filter_addresses(struct sockaddr *source, struct sockaddr *destination, sa_family_t family) {
-	int not_equal;
+	int not_equal = 1;
 
 	if (family == AF_INET) {
 		not_equal = memcmp(&((struct sockaddr_in *) source)->sin_addr,
