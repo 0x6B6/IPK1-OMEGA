@@ -42,11 +42,11 @@ typedef struct l4_scanner {
  * @param family Address family type
  */
 void set_scanner(l4_scanner *s,
-						struct sockaddr *source_addr,
-						struct sockaddr *dest_addr,
-						socklen_t source_addr_len,
-						socklen_t dest_addr_len,
-						sa_family_t family);
+                 struct sockaddr *source_addr,
+                 struct sockaddr *dest_addr,
+                 socklen_t source_addr_len,
+                 socklen_t dest_addr_len,
+                 sa_family_t family);
 
 /**
  * @brief Scanner starting point function

@@ -2,6 +2,7 @@
  * Project: IPK Project 1 - OMEGA: L4 Scanner
  * File: opts.c
  * Date: 18.02.2025
+ * Last change: 02.03.2025
  * Author: Marek Pazúr
  * 
  * Description: Options and arguments parsing (processing), option functions.
@@ -88,7 +89,7 @@ int parse_opt(cfg_t *cfg, int argc, char *argv[]) { /* Parses arguments */
 
 			if (is_opt(argv[i], "-i", "--interface")) { /* Interface */
 				if (argc == 2) { /* Is only parameter ./ipk-l4-scan -i | --interface, lists interfaces */
-					exit(list_interfaces(cfg->ifaddr));
+					exit(list_interfaces(cfg->ifaddr)); // Resources get freed in list_interfaces
 				}
 
 				if (opts & F_IFN) { /* Duplicite parameter catch */
@@ -213,16 +214,26 @@ int parse_opt(cfg_t *cfg, int argc, char *argv[]) { /* Parses arguments */
 				opts |= F_VERBOSE;
 			}
 
-			else if (is_opt(argv[i], "-h", "--help")) { /* @TODO: Help option, writes this message to stdout */
-				printf("Execution\n\n"
-						"./ipk-l4-scan \n\n"
+			else if (is_opt(argv[i], "-h", "--help")) { /* Help option, writes this message to stdout */
+				printf( "IPK25 TCP UDP network L4 Scanner\n"
+					    "Execution (root privileges required for scanning)\n\n"
+						"{sudo} ./ipk-l4-scan \n\n"
 						"Options:\n"
-						"[-i interface | --interface interface] \n"
-						"[--pu port-ranges | --pt port-ranges | -u port-ranges | -t port-ranges] \n"
-						"{-w timeout} \n"
-						"[domain-name | ip-address] \n"
-						"[-h | --help] Show this message\n"
+						"[-i interface | --interface interface] Device interface to be used. Displays a list of active interfaces, if option used standalone.\n"
+						"[--pu port-ranges | --pt port-ranges | -u port-ranges | -t port-ranges] List of ports to scan.\n"
+						"[domain-name | ip-address] Address of targeted host.\n"
+						"{-w | --timeout} Maximum amount of time to wait for target host response [milliseconds], default = 5000 ms.\n"
+						"{-r | --resend} Maximum retries of packet transmission, default = 1.\n"
+						"{-l | --ratelimit} Rate limit for sending UDP packets [milliseconds], default = 1000 ms.\n"
+						"{-v | --verbose} Display detailed information during scanning.\n"
+						"[-h | --help] Show this message.\n"
+						"\nTo display the list of active interfaces use ./ipk-l4-scan | ./ipk-l4-scan [-i | --interface]\n"
+						"If unsure how to set the rate limit, it is recommended to leave it set at 1000 milliseconds.\n"
+						"To see help, use [-h | --help]\n"
 					);
+
+				free_cfg(cfg); // Need to release resources when exiting
+				exit(EXIT_SUCCESS);
 			}
 
 			else {

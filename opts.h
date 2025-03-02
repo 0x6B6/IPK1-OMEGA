@@ -4,7 +4,8 @@
  * Date: 18.02.2025
  * Author: Marek Pazúr
  * 
- * Description: Options and arguments parsing, option functions (parameter processing).
+ * Description: Options and arguments parsing,
+ *    option functions (parameter processing).
  * 
  ****************************************************************/
 
@@ -43,8 +44,8 @@ typedef struct config {
 	unsigned int rate_limit; // Rate limit for UDP scanning
 	unsigned int retry;      // Number of times a packet should be resent in case of no response
 
-	char *dn_ip;			// Domain name | IP address
-	char *payload;			// Payload (data)
+	char *dn_ip;            // Domain name | IP address
+	char *payload;          // Payload (data)
 	char addr_str[64];      // Buffer of 64 bytes should be enough for any address in ASCII string format
 
 	uint8_t verbose;        // Show details

@@ -11,18 +11,11 @@
 /* Standard utility libraries */
 #include <stdio.h>
 #include <stdlib.h>
-/* CTRL + C Signal handle */
-#include <signal.h>
 
 /* Project libraries */
 #include "opts.h"
 #include "net_utils.h"
 #include "scan.h"
-
-/* <CTRL + C> Signal handler */
-void INThandler(int sig) {
-	printf("Terminating the program with interrupt signal - [%d]\n", sig);
-}
 
 int main(int argc, char *argv[]) {
 	//signal(SIGINT, INThandler);
