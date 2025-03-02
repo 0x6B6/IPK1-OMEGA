@@ -66,6 +66,27 @@ typedef struct pseudo_ipv6_h {
  */
 
 /**
+ * @brief Print port service by used protocol
+ * 
+ * This simple function prints port service of selected port by used 
+ * protocol to STDOUT.
+ * 
+ * @param port Port
+ * @param protocol TCP or UDP protocol
+ */
+void service(uint16_t port, int protocol);
+
+/**
+ * @brief Rate limit for UDP port scan in milliseconds
+ * 
+ * This function sets a delay (cooldown) in milliseconds, primarily used for
+ * UDP scanning.
+ * 
+ * @param rate_limit Time in milliseconds
+ */
+void rate_limit(int rate_limit);
+
+/**
  * @brief Hex dumps the content of a packet
  *
  * This function takes a pointer to the packet and its length
@@ -348,6 +369,6 @@ int filter_ports(uint16_t source, uint16_t destination);
  * 
  * @return Returns EXIT_SUCCESS on valid response, else EXIT_FAILURE
  */
-int extract_data(unsigned char *packet, uint16_t destination_port, sa_family_t family, int protocol, int iphdr_offset);
+int extract_data(unsigned char *packet, uint16_t destination_port, sa_family_t family, int protocol, int iphdr_offset, uint8_t verbose);
 
 #endif

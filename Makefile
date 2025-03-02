@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -std=c17 -Wall -Wextra -Werror -D_GNU_SOURCE
+CFLAGS = -std=c17 -Wall -Wextra -Werror -D_GNU_SOURCE -Wpedantic
 
 EXECUTABLE = ipk-l4-scan
 LOGIN = xpazurm00

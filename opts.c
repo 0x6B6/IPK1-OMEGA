@@ -24,11 +24,14 @@
  *
  * Each flag represents specific parameter
  */
-#define F_IFN (1 << 0)		// Interface name
-#define F_TCP (1 << 1)		// TCP port(s) 
-#define F_UDP (1 << 2)		// UDP port(s)
-#define F_TIMEOUT (1 << 3)	// Timeout
-#define F_DN_IP (1 << 4)	// Domain name or IP address of the host
+#define F_IFN (1 << 0)        // Interface name
+#define F_TCP (1 << 1)        // TCP port(s) 
+#define F_UDP (1 << 2)        // UDP port(s)
+#define F_TIMEOUT (1 << 3)    // Timeout
+#define F_DN_IP (1 << 4)      // Domain name or IP address of the host
+#define F_RATE_LIMIT (1 << 5) // Rate limit for UDP scanning
+#define F_RESEND (1 << 6)     // Number of times a packet should be resent in case of no response
+#define F_VERBOSE (1 << 7)    // Show detailed information
 
 /* Helper macro(s) */
 #define CHECK_PARAM(i, argc, argv, msg) \
@@ -53,7 +56,9 @@ void init_cfg(cfg_t *cfg) {
 
 	cfg->tcp_ports = (ports_t) {.access_type = P_UNDEF, .range.from = 1, .range.to = 65536, .list_capacity = 16};
 	cfg->udp_ports = (ports_t) {.access_type = P_UNDEF, .range.from = 1, .range.to = 65536, .list_capacity = 16};
-	cfg->timeout = 5000;
+	cfg->timeout = 5000;   // 5000 ms default
+	cfg->rate_limit = 1000; // 1000 ms default source [RFC 1812]: https://datatracker.ietf.org/doc/html/rfc1812#page-56
+	cfg->retry = 1;        // 1 packet retransmission default
 }
 
 void free_cfg(cfg_t *cfg) {
@@ -159,6 +164,53 @@ int parse_opt(cfg_t *cfg, int argc, char *argv[]) { /* Parses arguments */
 				}
 
 				opts |= F_TIMEOUT;
+			}
+
+			else if (is_opt(argv[i], "-l", "--rl")) {
+				if (opts & F_RATE_LIMIT) { /* Duplicite parameter catch */
+					fprintf(stderr, "ipk-l4-scan: error: Multiple [-l | --rl] parameters '%s' given!\n", argv[i]);
+					return EXIT_FAILURE;
+				}
+
+				++i; /* Move to the additional argument */
+
+				CHECK_PARAM(i, argc, argv, "Missing [-l | -- rl] [rate limit] (in milliseconds) argument!");
+
+				if (parse_number(&cfg->rate_limit, argv[i])) {
+					fprintf(stderr,"ipk-l4-scan: error: Unable to parse rate limit argument\n");
+					return EXIT_FAILURE;					
+				}
+
+				opts |= F_RATE_LIMIT;
+			}
+
+			else if (is_opt(argv[i], "-r", "--rs")) {
+				if (opts & F_RESEND) { /* Duplicite parameter catch */
+					fprintf(stderr, "ipk-l4-scan: error: Multiple [-r | --rs] parameters '%s' given!\n", argv[i]);
+					return EXIT_FAILURE;
+				}
+
+				++i; /* Move to the additional argument */
+
+				CHECK_PARAM(i, argc, argv, "Missing [-r | -- resend] [number of packet retransmissions] argument!");
+
+				if (parse_number(&cfg->retry, argv[i])) {
+					fprintf(stderr,"ipk-l4-scan: error: Unable to parse resend argument\n");
+					return EXIT_FAILURE;					
+				}
+
+				opts |= F_RESEND;
+			}
+
+			else if (is_opt(argv[i], "-v", "--verbose")) {
+				if (opts & F_VERBOSE) { /* Duplicite parameter catch */
+					fprintf(stderr, "ipk-l4-scan: error: Multiple [-v | --verbose] parameters '%s' given!\n", argv[i]);
+					return EXIT_FAILURE;
+				}
+
+				cfg->verbose = 1; /* Verbose mode on */
+
+				opts |= F_VERBOSE;
 			}
 
 			else if (is_opt(argv[i], "-h", "--help")) { /* @TODO: Help option, writes this message to stdout */

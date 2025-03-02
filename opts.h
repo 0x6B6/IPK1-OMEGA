@@ -11,8 +11,8 @@
 #ifndef OPTS_H
 #define OPTS_H
 
-#include <ifaddrs.h>	// Network interfaces
-#include <net/if.h>		// Flags, network structs
+#include <ifaddrs.h>    // Network interfaces
+#include <net/if.h>     // Flags, network structs
 #include <arpa/inet.h>  // Host and network byte order conversion
 
 #define P_UNDEF 0x00
@@ -20,7 +20,7 @@
 #define P_LIST 0x02
 
 typedef struct ports {
-	unsigned int access_type; // Either range or list
+	unsigned int access_type; // Either a range or a list
 
 	struct range {
 		unsigned int from;
@@ -33,17 +33,21 @@ typedef struct ports {
 } ports_t;
 
 typedef struct config {
-	char *interface;		// Given interace
+	char *interface;        // Device interace
 	struct ifaddrs *ifaddr; // Interface adress(es) information
 
 	ports_t tcp_ports;
 	ports_t udp_ports;
 
-	unsigned int timeout;
-	unsigned int rate_limit;
+	unsigned int timeout;    // Response timeout
+	unsigned int rate_limit; // Rate limit for UDP scanning
+	unsigned int retry;      // Number of times a packet should be resent in case of no response
 
-	char *dn_ip;
-	char *payload;
+	char *dn_ip;			// Domain name | IP address
+	char *payload;			// Payload (data)
+	char addr_str[64];      // Buffer of 64 bytes should be enough for any address in ASCII string format
+
+	uint8_t verbose;        // Show details
 } cfg_t;
 
 typedef struct interface interface_t;

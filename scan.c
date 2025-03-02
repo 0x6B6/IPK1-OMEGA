@@ -24,7 +24,7 @@
 
 #define SOURCE_PORT 12345 // Should be randomized instead?
 
-inline void set_scanner(l4_scanner *s, struct sockaddr *src_a, struct sockaddr *dst_a, socklen_t src_al, socklen_t dst_al, sa_family_t family) {
+void set_scanner(l4_scanner *s, struct sockaddr *src_a, struct sockaddr *dst_a, socklen_t src_al, socklen_t dst_al, sa_family_t family) {
 		/* Interface source address */
 		s->source_addr = src_a;			
 		s->source_addr_len = src_al;	
@@ -69,15 +69,13 @@ int start_scan(cfg_t *cfg) {
 		set_scanner(&s, source_addr, ai->ai_addr, sa_len, ai->ai_addrlen, ai->ai_addr->sa_family);
 
 		/* Display current address to be scanned */
-		char addr_str[64]; // Buffer of 64 bytes should be enough for any address
-
-		if (addr_to_string(ai->ai_addr, ai->ai_addr->sa_family, addr_str, sizeof(addr_str))) {
+		if (addr_to_string(ai->ai_addr, ai->ai_addr->sa_family, cfg->addr_str, sizeof(cfg->addr_str))) {
 			fprintf(stderr, "ipk-l4-scan: error: Address conversion failure\n");
 			freeaddrinfo(addrinfo);
 			return EXIT_FAILURE;
 		}
 
-		printf("Interesting ports on %s (%s):\nPORT STATE\n", cfg->dn_ip, addr_str);
+		printf("Interesting ports on %s (%s):\nPORT STATE\n", cfg->dn_ip, cfg->addr_str);
 
 		/* Iterate given ports and scan them by using corresponding protocol procedures */
 		if (process_ports(cfg, &s, TCP) || process_ports(cfg, &s, UDP)) {
@@ -96,18 +94,15 @@ int start_scan(cfg_t *cfg) {
 
 int process_ports(cfg_t *cfg, l4_scanner *scanner, int protocol) {
 	ports_t ports;
-	char *prot_str;
 	int prot_socket;
 
 	/* Protocol handle selector */
 	if (protocol == TCP) {
 		ports = cfg->tcp_ports;
-		prot_str = "tcp";
 		prot_socket = IPPROTO_TCP;
 	}
 	else if (protocol == UDP) {
 		ports = cfg->udp_ports;
-		prot_str = "udp";
 		prot_socket = IPPROTO_UDP;
 	}	
 	else {
@@ -125,7 +120,6 @@ int process_ports(cfg_t *cfg, l4_scanner *scanner, int protocol) {
 	if (ports.access_type == P_RANGE) {
 		for (unsigned int port = ports.range.from; port <= ports.range.to; ++port)
 		{
-			printf("%d/%s ", port, prot_str);
 			scanner->destination_port = port;
 
 			if(port_scan(cfg, scanner, protocol)) {
@@ -137,9 +131,7 @@ int process_ports(cfg_t *cfg, l4_scanner *scanner, int protocol) {
 	else if (ports.access_type == P_LIST) {
 		for (size_t i = 0; i < ports.list_length; ++i)
 		{
-			unsigned int port = ports.port_list[i];
-			printf("%d/%s ", port, prot_str);
-			scanner->destination_port = port;
+			scanner->destination_port = ports.port_list[i];
 
 			if (port_scan(cfg, scanner, protocol)) {
 				fprintf(stderr, "ipk-l4-scan: error: port scan\n");
@@ -154,15 +146,22 @@ int process_ports(cfg_t *cfg, l4_scanner *scanner, int protocol) {
 }
 
 int port_scan(cfg_t *cfg, l4_scanner *scanner, int protocol) {
-	struct pollfd pfd = {0};
+	int recv_socket_fd = -1, retry = cfg->retry, size = 0, iphdr_offset = 0;
 	packet query_packet = {0}, response_packet = {0};
-	int recv_socket_fd = -1, retry = 1, size = 0, iphdr_offset = 0;
+	struct pollfd pfd = {0};
+	char *prot_str = protocol == TCP ? "[TCP-SYN]" : "[UDP]";
+
+	if (cfg->verbose) {
+		printf("[INFO] Processing port %d", scanner->destination_port);
+		service(scanner->destination_port, protocol);
+		putchar('\n');
+	}
 
 	/* Set receive socket */
-	if (protocol == TCP) { // Expected response - TCP prot
+	if (protocol == TCP) { // Expected response --> TCP protocol
 		recv_socket_fd = scanner->socket_fd;
 	}
-	else if (protocol == UDP) { // Expected response - ICMP/ICMPV6 prot
+	else if (protocol == UDP) { // Expected response --> ICMP/ICMPV6 protocol
 		if ((recv_socket_fd = create_socket(cfg->interface, scanner->family, SOCK_RAW, scanner->family == AF_INET ? IPPROTO_ICMP : IPPROTO_ICMPV6)) < 0) {
 			fprintf(stderr, "ipk-l4-scan: error: Invalid socket file descriptor\n");
 			
@@ -178,7 +177,11 @@ int port_scan(cfg_t *cfg, l4_scanner *scanner, int protocol) {
 	pfd.fd = recv_socket_fd;
 	pfd.events = POLLIN;
 	
-	size = packet_assembly(scanner, query_packet, protocol, &iphdr_offset);
+	/* Packet assembly */
+	size = packet_assembly(scanner, query_packet, protocol, &iphdr_offset); 
+
+	if (cfg->verbose)
+		printf("[INFO] Sending %s packet to %s:%d\n", prot_str, cfg->addr_str, scanner->destination_port);
 
 	int sr = sendto(scanner->socket_fd, query_packet + iphdr_offset, size - iphdr_offset, 0, scanner->destination_addr, scanner->destination_addr_len);
 
@@ -200,7 +203,14 @@ int port_scan(cfg_t *cfg, l4_scanner *scanner, int protocol) {
 
 		/* No response */
 		if (pr == 0) {
+			if (cfg->verbose)
+				printf("\033[0;31m[NO RESPONSE]\033[0m\n");
+
 			if (retry) {
+
+				if (cfg->verbose)
+					printf("[RETRANSMISSION] Sending %s packet to %s:%d\n", prot_str, cfg->addr_str, scanner->destination_port);
+
 				/* Resending packet */
 				sr = sendto(scanner->socket_fd, query_packet + iphdr_offset, size - iphdr_offset, 0, scanner->destination_addr, scanner->destination_addr_len);
 
@@ -214,7 +224,10 @@ int port_scan(cfg_t *cfg, l4_scanner *scanner, int protocol) {
 				continue;
 			}
 
-			printf("%s\n", protocol == TCP ? "filtered" : "open|filtered");
+			if (cfg->verbose)
+				printf("\033[0;33m[TIMEOUT]\033[0m ");
+
+			printf("%d/%s %s\n", scanner->destination_port, protocol == TCP ? "tcp" : "udp",protocol == TCP ? "filtered" : "open");
 			break;
 		}
 		/* Response received */
@@ -234,15 +247,19 @@ int port_scan(cfg_t *cfg, l4_scanner *scanner, int protocol) {
 
 			/* Response packet filter and data extraction */
 			if (filter_addresses(&source_address, scanner->destination_addr, scanner->family) == 0) {
-				if (extract_data(bp, scanner->destination_port, scanner->family, protocol, iphdr_offset) == 0) {
+				if (extract_data(bp, scanner->destination_port, scanner->family, protocol, iphdr_offset, cfg->verbose) == 0) {
 					break;
 				}
 			}
 		}
 	}
 
-	if (scanner->socket_fd != recv_socket_fd) { // band-aid fix
+	if (scanner->socket_fd != recv_socket_fd) {
 		close(recv_socket_fd);
+	}
+
+	if (protocol == UDP) {
+		rate_limit(cfg->rate_limit);
 	}
 
 	return EXIT_SUCCESS;

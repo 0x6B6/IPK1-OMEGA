@@ -13,12 +13,15 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <unistd.h>
+#include <time.h>
 
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <linux/if_packet.h>
 #include <fcntl.h>
 #include <net/if.h>
+#include <netdb.h>
+#include <arpa/inet.h>
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
 #include <netinet/ip.h>
@@ -27,6 +30,25 @@
 #include <netinet/icmp6.h>
 
 #include "net_utils.h"
+
+/* Print port service */
+void service(uint16_t port, int protocol) {
+	struct servent *service;
+
+	if ((service = getservbyport(htons(port), protocol == TCP ? "tcp" : "udp"))) {
+		printf(" [%s]", service->s_name);
+	}
+}
+
+/* Rate limit simulation */
+void rate_limit(int rate_limit) {
+	struct timespec timespec;
+
+	timespec.tv_sec = rate_limit / 1000; // Set seconds
+	timespec.tv_nsec = (rate_limit % 1000) * 1000000; // Set nanoseconds
+
+	nanosleep(&timespec, NULL);
+}
 
 /* Hex dumps packet content */
 void hexdump_packet(char unsigned* address, int length) {
@@ -485,7 +507,13 @@ int filter_ports(uint16_t source, uint16_t destination) {
 }
 
 /* Extracts packet data and evaluates response */
-int extract_data(unsigned char *packet, uint16_t destination_port, sa_family_t family, int protocol, int iphdr_offset) {
+int extract_data(unsigned char *packet, uint16_t destination_port, sa_family_t family, int protocol, int iphdr_offset, uint8_t verbose) {
+	if (verbose) {
+		printf("\033[0;32m[RESPONSE]\033[0m ");
+	}
+
+	printf("%d/%s ", destination_port, protocol == TCP ? "tcp" : "udp");
+
 	if (protocol == TCP) {
 		struct tcphdr *t = (struct tcphdr *) packet;
 
@@ -494,10 +522,10 @@ int extract_data(unsigned char *packet, uint16_t destination_port, sa_family_t f
 		}
 
 		if(t->th_flags & TH_SYN && t->th_flags & TH_ACK) {
-			printf("open [SYN, ACK]\n");
+			printf("open%s\n", verbose ? " [SYN, ACK]" : "");
 		}
 		else if(t->th_flags & TH_RST && t->th_flags & TH_ACK) {
-			printf("closed [RST, ACK]\n");
+			printf("closed%s\n", verbose ? " [RST, ACK]" : "");
 		}
 		else printf("filtered\n");	
 	}
@@ -530,7 +558,7 @@ int extract_data(unsigned char *packet, uint16_t destination_port, sa_family_t f
 			return EXIT_FAILURE;
 		}
 
-		printf("closed [ICMP]\n");
+		printf("closed%s\n", verbose ? " [ICMP]" : "");
 	}
 
 	return EXIT_SUCCESS;
