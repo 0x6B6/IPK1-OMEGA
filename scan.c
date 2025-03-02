@@ -60,7 +60,7 @@ int start_scan(cfg_t *cfg) {
 	while (ai) {
 		/* Get (client) source address of the given interface, corresponding to the host family address */
 		if ((source_addr = get_ifaddr(cfg->ifaddr, cfg->interface, ai->ai_addr->sa_family)) == NULL){
-			printf("ipk-l4-scan: error: Unable to get interface (%s) source address\n", cfg->interface);
+			fprintf(stderr, "ipk-l4-scan: error: Unable to get interface (%s) source address\n", cfg->interface);
 			freeaddrinfo(addrinfo);
 			return EXIT_FAILURE;
 		}

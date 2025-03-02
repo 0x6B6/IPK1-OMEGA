@@ -61,7 +61,7 @@ void hexdump_packet(char unsigned* address, int length) {
 }
 
 /* Puts a pointer to dynamically allocated LL interface 
- *structure in the scan program configuration structure.
+ * structure in the scan program configuration structure.
  */
 int get_interfaces(cfg_t *cfg) {
 	struct ifaddrs *ifaddr;
@@ -508,18 +508,17 @@ int filter_ports(uint16_t source, uint16_t destination) {
 
 /* Extracts packet data and evaluates response */
 int extract_data(unsigned char *packet, uint16_t destination_port, sa_family_t family, int protocol, int iphdr_offset, uint8_t verbose) {
-	if (verbose) {
-		printf("\033[0;32m[RESPONSE]\033[0m ");
-	}
-
-	printf("%d/%s ", destination_port, protocol == TCP ? "tcp" : "udp");
-
+	/* TCP response */
 	if (protocol == TCP) {
 		struct tcphdr *t = (struct tcphdr *) packet;
 
+		/* Filter out packets with incorrect ports */
 		if (filter_ports(t->th_sport, destination_port)) {
 			return EXIT_FAILURE;
 		}
+
+		/* Port status */
+		printf("%s%d/tcp ", verbose ? "\033[0;32m[RESPONSE]\033[0m " : "", destination_port);
 
 		if(t->th_flags & TH_SYN && t->th_flags & TH_ACK) {
 			printf("open%s\n", verbose ? " [SYN, ACK]" : "");
@@ -530,11 +529,12 @@ int extract_data(unsigned char *packet, uint16_t destination_port, sa_family_t f
 		else printf("filtered\n");	
 	}
 
+	/* ICMP TCP response */
 	if (protocol == UDP) {
 		struct udphdr *u;
 		int icmp_offset = 0;
 
-		if (family == AF_INET) {
+		if (family == AF_INET) { /* ICMP IPv4 */
 			struct icmphdr *icmp = (struct icmphdr *) packet;
 			icmp_offset = sizeof(struct icmphdr);
 			
@@ -543,7 +543,7 @@ int extract_data(unsigned char *packet, uint16_t destination_port, sa_family_t f
 			}
 		}
 		
-		if (family == AF_INET6) {
+		if (family == AF_INET6) { /* ICMP IPv6 */
 			struct icmp6_hdr *icmp6 = (struct icmp6_hdr*) packet;
 			icmp_offset = sizeof(struct icmp6_hdr);
 
@@ -554,10 +554,13 @@ int extract_data(unsigned char *packet, uint16_t destination_port, sa_family_t f
 
 		u = (struct udphdr *) (packet + icmp_offset + iphdr_offset);
 
+		/* Filter out packets with incorrect ports */
 		if (filter_ports(u->uh_dport, destination_port)) {
 			return EXIT_FAILURE;
 		}
 
+		/* Port status */
+		printf("%s%d/udp ", verbose ? "\033[0;32m[RESPONSE]\033[0m " : "", destination_port);
 		printf("closed%s\n", verbose ? " [ICMP]" : "");
 	}
 

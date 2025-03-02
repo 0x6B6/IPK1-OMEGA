@@ -262,7 +262,7 @@ int parse_opt(cfg_t *cfg, int argc, char *argv[]) { /* Parses arguments */
 
 /* Parses port string */
 int parse_ports(ports_t *ports, char *port_str) {
-	uint16_t port_register[65536] = {0}; // Port register, serves for avoiding duplicite ports in list
+	uint16_t port_register[65535] = {0}; // Port register, serves for avoiding duplicite ports in list
 
 	char *copy, *token, *found;
 
@@ -284,7 +284,7 @@ int parse_ports(ports_t *ports, char *port_str) {
 
 	copy[j] = '\0';
 
-	unsigned int port_from = 1, port_to = 65536; // Temporary variables, serve as range
+	unsigned int port_from = ports->range.from = 1, port_to = ports->range.to = 65535; // Temporary variables, serve as range
 
 	/* Parse port(s) argument */
 	if (strchr(copy, ',')) { /* Port sequence 53,80,120 */
@@ -306,7 +306,7 @@ int parse_ports(ports_t *ports, char *port_str) {
 		}
 
 		/* Port legit check */
-		if (port_value < 1 || port_value > 65536) {
+		if (port_value < 1 || port_value > 65535) {
 			fprintf(stderr, "ipk-l4-scan: error: Invalid port %d\n", port_value);
 			free(copy);
 			return EXIT_FAILURE;
@@ -339,7 +339,7 @@ int parse_ports(ports_t *ports, char *port_str) {
 			}
 
 			/* Port legit check */
-			if (port_value < 1 || port_value > 65536) {
+			if (port_value < 1 || port_value > 65535) {
 				fprintf(stderr, "ipk-l4-scan: error: Invalid port %d\n", port_value);
 				free(copy);
 				return EXIT_FAILURE;
@@ -353,74 +353,69 @@ int parse_ports(ports_t *ports, char *port_str) {
 
 		/* Setup */
 		ports->access_type = P_LIST;
-      /*printf("Capacity %ld, length %ld\n", ports->list_capacity, ports->list_length);
-		for (unsigned int i = 0; i < ports->list_length; ++i)
-		{
-			printf("%d, ", ports->port_list[i]);
-		}*/
 	}
-	else if ((found = strchr(copy, '-')) != NULL) { /* Port range: 53-80 | (1)-80 | 65530-(65536), the port numbers in round brackets are implicit */
+	else if ((found = strchr(copy, '-')) != NULL) { /* Port range: 53-80 */
 		if (strchr(found + 1, '-')) {
 			fprintf(stderr, "ipk-l4-scan: error: Invalid port range '%s'\n", port_str);	
 			free(copy);
 			return EXIT_FAILURE;
 		}
 
-		if (copy[0] == '-') { /* -80 case */
-			if (parse_number(&port_to, copy + 1)) {
-				fprintf(stderr,"ipk-l4-scan: error: Unable to parse port range '%s'\n", port_str);
-				free(copy);
-				return EXIT_FAILURE;
-			}
+		token = strtok(copy, "-");
+
+		if (parse_number(&port_from, token)) {
+			fprintf(stderr,"ipk-l4-scan: error: Unable to parse port range '%s'\n", port_str);
+			free(copy);
+			return EXIT_FAILURE;
 		}
-		else { 
-			token = strtok(copy, "-");
 
-			if (parse_number(&port_from, token)) {
-				fprintf(stderr,"ipk-l4-scan: error: Unable to parse port range '%s'\n", port_str);
-				free(copy);
-				return EXIT_FAILURE;
-			}
+		token = strtok(NULL, "-");
 
-			token = strtok(NULL, "-");
-
-			if (token != NULL) { /* 53-80 case, else 53- case */
-				if (parse_number(&port_to, token)) {
-					fprintf(stderr,"ipk-l4-scan: error: Unable to parse port range '%s'\n", port_str);
-					free(copy);
-					return EXIT_FAILURE;
-				}
-			}
-		}	
+		if (token == NULL || parse_number(&port_to, token)) { /* 53-80 case */
+			fprintf(stderr,"ipk-l4-scan: error: Unable to parse port range '%s'\n", port_str);
+			free(copy);
+			return EXIT_FAILURE;
+		}
+			
 		/* Setup */
 		ports->access_type = P_RANGE;
 		ports->range.from = port_from;
 		ports->range.to = port_to;
-		//printf("%d-%d\n",port_from, port_to); /* 53-80 case */
+		//printf("%d-%d\n",port_from, port_to);
 	}
-	else if ((found = strstr(copy, "to")) != NULL) { /* Port range: 53 *to* 80 */
+	else if ((found = strstr(copy, "to")) != NULL) { /* Port range: 53 *to* 80 | (1) *to* 80 | 65530 *to*(65535), the port numbers in round brackets are implicit */
 		if (strstr(found + 2, "to")) { /* Cant have more than one 'to' */
 			fprintf(stderr, "ipk-l4-scan: error: Invalid port range '%s'\n", port_str);	
 			free(copy);
 			return EXIT_FAILURE;
 		}
 
-		token = strtok(copy, "to");
-		
-		if (token == NULL || parse_number(&port_from, token)) {
-			fprintf(stderr,"ipk-l4-scan: error: Unable to parse port range '%s'\n", port_str);
-			free(copy);
-			return EXIT_FAILURE;
+		if (strncmp(copy, "to", 2) == 0) { /* 1 to 80 case */
+			if (parse_number(&port_to, copy + 2)) {
+				fprintf(stderr,"ipk-l4-scan: error: Unable to parse port range '%s'\n", port_str);
+				free(copy);
+				return EXIT_FAILURE;
+			}			
 		}
+		else {
+			token = strtok(copy, "to");
+			
+			if (parse_number(&port_from, token)) {
+				fprintf(stderr,"ipk-l4-scan: error: Unable to parse port range '%s'\n", port_str);
+				free(copy);
+				return EXIT_FAILURE;
+			}
 
-		token = strtok(NULL, "to");
+			token = strtok(NULL, "to");
 
-		if (token == NULL || parse_number(&port_to, token)) {
-			fprintf(stderr,"ipk-l4-scan: error: Unable to parse port range '%s'\n", port_str);
-			free(copy);
-			return EXIT_FAILURE;
+			if (token != NULL) { /* 53 to 80 case, else 53 to 65535 */
+				if (parse_number(&port_to, token)) {
+					fprintf(stderr,"ipk-l4-scan: error: Unable to parse port range '%s'\n", port_str);
+					free(copy);
+					return EXIT_FAILURE;
+				}
+			}
 		}
-
 		/* Setup */
 		ports->access_type = P_RANGE;
 		ports->range.from = port_from;
@@ -446,7 +441,7 @@ int parse_ports(ports_t *ports, char *port_str) {
 	free(copy); // Copy can be freed here
 
 	/* Range legit check */
-	if (ports->range.from > ports->range.to || ports->range.from < 1 || ports->range.to > 65536) {
+	if (ports->range.from > ports->range.to || ports->range.from < 1 || ports->range.to > 65535) {
 		fprintf(stderr, "ipk-l4-scan: error: Port(s) or range invalid\n");
 		return EXIT_FAILURE;
 	}
