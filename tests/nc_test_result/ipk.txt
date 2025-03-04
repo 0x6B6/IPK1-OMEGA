@@ -1,0 +1,6 @@
+Interesting ports on localhost (127.0.0.1):
+PORT STATE
+12346/tcp open
+12347/tcp open
+12348/tcp open
+7777/tcp closed

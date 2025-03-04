@@ -1,0 +1,11 @@
+Starting Nmap 7.80 ( https://nmap.org ) at 2025-03-04 22:16 CET
+Nmap scan report for localhost (127.0.0.1)
+Host is up (0.000018s latency).
+
+PORT      STATE  SERVICE
+7777/tcp  closed cbt
+12346/tcp open   netbus
+12347/tcp open   unknown
+12348/tcp open   unknown
+
+Nmap done: 1 IP address (1 host up) scanned in 0.03 seconds

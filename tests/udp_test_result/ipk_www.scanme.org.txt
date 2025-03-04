@@ -1,0 +1,7 @@
+Interesting ports on www.scanme.org (45.33.32.156):
+PORT STATE
+53/udp open
+161/udp open
+123/udp open
+Interesting ports on www.scanme.org (2600:3c01::f03c:91ff:fe18:bb2f):
+PORT STATE

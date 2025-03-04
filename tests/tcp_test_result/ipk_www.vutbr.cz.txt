@@ -1,0 +1,10 @@
+Interesting ports on www.vutbr.cz (147.229.2.90):
+PORT STATE
+21/tcp filtered
+22/tcp filtered
+53/tcp filtered
+80/tcp open
+443/tcp open
+110/tcp filtered
+143/tcp filtered
+3389/tcp filtered

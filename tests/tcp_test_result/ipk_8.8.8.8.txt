@@ -1,0 +1,10 @@
+Interesting ports on 8.8.8.8 (8.8.8.8):
+PORT STATE
+21/tcp filtered
+22/tcp filtered
+53/tcp open
+80/tcp filtered
+443/tcp open
+110/tcp filtered
+143/tcp filtered
+3389/tcp filtered

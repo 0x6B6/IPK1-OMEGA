@@ -27,7 +27,9 @@ scan_hosts() {
 }
 
 parse_results() {
-  grep -Eo '([0-9]+/udp\s+[a-z]+)' "$1" | awk '{print $1, $2}' | sort > "$1".log
+  output=$(grep -Eo '([0-9]+/udp\s+[a-z]+)' "$1" | awk '{print $1, $2}' | sort)
+  echo "$output"
+  echo "$output" > "$1".log
 }
 
 compare_results() {

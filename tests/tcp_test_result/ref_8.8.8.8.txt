@@ -1,0 +1,15 @@
+Starting Nmap 7.80 ( https://nmap.org ) at 2025-03-04 22:13 CET
+Nmap scan report for 8.8.8.8
+Host is up (0.0049s latency).
+
+PORT     STATE    SERVICE
+21/tcp   filtered ftp
+22/tcp   filtered ssh
+53/tcp   open     domain
+80/tcp   filtered http
+110/tcp  filtered pop3
+143/tcp  filtered imap
+443/tcp  open     https
+3389/tcp filtered ms-wbt-server
+
+Nmap done: 1 IP address (1 host up) scanned in 14.26 seconds
