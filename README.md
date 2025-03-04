@@ -187,7 +187,7 @@ Next, the device interface source address is fetched using the `get_ifaddr` func
 
 Once the data is collected, the scanner structure is initialized using the `set_scanner` function, and the *port structures* are prepared for processing, separately for the TCP and UDP protocols.
 
-![Start scan diagram](images/diagram_start_scan.png)
+![Start scan diagram](images/diagram_start_scan_white.png)
 
 #### Port processing
 Both *TCP* and *UDP* *port structures* are iterated through using for loops. It is distinguished whether it is a *range* or a *list*.
@@ -207,6 +207,8 @@ typedef struct ports {
 } ports_t;
 ```
 In order to create and be able to send custom protocol packets, a raw socket with the specified protocol (TCP or UDP) must be created using function `create_socket` and bound to the chosen interface. Additionally, the communication of the sockets is set to be **non-blocking network I/O**, since polling will be used later on to wait for responses.
+
+![Process ports diagram](images/diagram_process_ports_white.png)
 
 #### Port scanning
 At this stage, the port scanning process begins. However, a few preparations are required, such as assembling the packet to be sent and setting up the response socket.
@@ -230,6 +232,8 @@ Finally, the scanner waits for a response using `poll` function.
 Since packet loss can occur at any time, the probe packet may not reach the target, resulting in no response. Depending on the `--resend` parameter, the probe packet will be resent a specified number of times before classifying the port as filtered (*for TCP*) or open (*for UDP*).
 
 If a response packet arrives, it is first filtered through the `filter_addresses` function before being passed to `extract_data` for evaluation. 
+
+![Port scan diagram](images/diagram_port_scan_white.png)
 
 Depending on the protocol, the corresponding protocol head is extracted from the packet and filtered through the `filter_ports` function. 
 
