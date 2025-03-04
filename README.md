@@ -57,7 +57,7 @@ The *advantages* of this method are that it is relatively lightweight and can be
 
 First step to initiate a *three-way handshake* is to create a TCP packet with the *SYN* flag set and send it to the target host to scan the desired port(s) [4].
 
-Now there are three options of whats about to happen in the second step
+Now there are three options of whats about to happen in the second step [4]
 - Target host sends a response with *SYN, ACK* flags set back
 - Target host sends a response with *RST* flags set back
 - No response is received
@@ -282,9 +282,6 @@ List of auxiliary private functions defined in `net_utils.c`:
 - `hexdump_packet`: Prints the content of a packet in hexadecimal format.
 - `print_if_flags`: Prints the status of the interface.
 
-
-
-
 ### Compilation
 
 The program is compiled using the **GCC** compiler with the following flags:
@@ -315,22 +312,74 @@ gcc -std=c17 -Wall -Wextra -Werror -D_GNU_SOURCE -Wpedantic
 - valgrind: Memory leaks
 - lsof: Track file descriptors
 
+*Test files can be found in the tests directory.*
+
 ### Test suite
 - Parameter parsing
+	- `parse_test.sh`
 - Port scan results
-- Memory leaks & file descriptor handling
+  - `simple_test.sh`
+  - `nc_test.sh`
+  - `tcp_test.sh`
+  - `udp_test.sh`
+- Memory handling
+	- `memory_test.sh`
 
 #### Parameter parsing
+It is crucial to ensure the parsing functionality works as intended, so that the scanner correctly interprets and processes
+the input parameters. This gurantees that the program behaves as expected.
 
-#### Port scanning results
+The test case `parse_test.sh` verifies that the input parameters are properly parsed, validated and interpreted.
 
-#### Memory leaks & file descriptor handling
+It includes tests for both valid and invalid inputs, including various edge cases, such as:
+- Port formating
+- Valid port range
+- Valid ports
+- Possible parameter combinations
+- Parameter duplicity
+- Parameter argument duplication
 
-why it was tested
+The program inputs are various combinations of parameters, trying to cover all of the mentioned cases.
 
-how it was tested
+All tests are expected to pass, actual outputs of the script can be generated and printed to standard output by executing the script.
 
-what were the inputs, expected outputs, and actual outputs
+#### Port scan results
+The most important part to test, the scanner core. It is essential to properly test whether the scanner's evaluation results are trustworthy. If not, it could mean incorrect protocol header settings, incorrect checksum calculation, or generally incorrect packet assembly.
+
+As part of the testing of this section, the nmap tool was used for reference, the netcat tool for simulating port opening on a local device, and wireshark for monitoring network traffic.
+
+There are a total of 4 test scripts in the scanning test suite, namely:
+  - `simple_test.sh`: A simple TCP SYN/UDP ICMP scanning test on a public network and localhost. In the case of localhost, the netcat tool is used to verify that the scanner correctly captures the opening of ports. 
+  - `nc_test.sh`: TCP SYN scan test of localhost using netcat to open specific ports and nmap for reference output, which will then be compared to the scanner output.
+  - `tcp_test.sh`: A test focused on TCP SYN scanning of several different hosts on a public network that use both IPv4 and IPv6 addressing. Specifically, ports 21,22,53,80,443,110,143,3389 are scanned to verify the scanner's capabilities. The nmap tool serves as reference output in the test.
+  - `udp_test.sh`: Test zaměřený na UDP ICMP skenování několika různých hostů na veřejné síti, kteři využívají IPv4 i IPv6 adresování. Konkrétně jsou skenovány porty 53,161,123 pro ověřaení schopnosti skeneru. Nástroj nmap v testu slouží jako referenční výstup.
+
+The outputs of all test scripts, including the expected reference output (if the script has one, else its printed to STDOUT), are located in directories that correspond to the test name. If Nmap was used for reference output, it is compared to the actual scanner output to verify correct evaluation of the states of the scanned ports.
+
+*Note*: However, there were a few edge cases where nmap evaluated the port as filtered, while the scanner evaluated it as closed, and even in Wireshark, the packets had RST, ACK flags.
+
+For each of the above test scripts, the wireshark tool was used to capture network traffic, which allows for detailed analysis of the scanning process, such as viewing packet headers. This allows for errors in the construction of probe packets to be discovered. The .pcapng files are located in the tests/PCAPs directory.
+
+The .pcapng files may require additional permissions to be opened, use the following command
+
+```bash
+  sudo chmod +x *.pcapng
+```
+
+#### Memory handling
+Memory leaks can lead to serious performance degradation, in the worse case, invalid memory accesses cause abrupt end (e.g, SEGFAULT, SIGSEGV).
+
+The program should **NOT** have any memory leaks or invalid memory accesses.
+
+Therefore the test `memory_test.sh` focuses on memory handling, by executing the scanner program with different configuration and utilizing the dynamic
+analysis `Valgrind` memory debugging tool.
+
+If there are any memory issues found, the test script prints *No memory issues detected* to standard output.
+
+Memory test outputs can be found generated in the *memory_result* directory.
+
+#### Other
+In addition to the overhead of the test scripts, ping and ping6 were used to verify IPv4 and IPv6 functionality in the test environment, and lsof was used to check the correct closing of file descriptors.
 
 ## Execution
 *Root privileges are required in order to scan ports.*
