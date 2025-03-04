@@ -39,9 +39,9 @@ This document includes
 ## Theory
 
 ### L4 network scanning
-Port scanning is a method for discovering useful communication channels on a host. The core idea is to probe as many ports as possible, ideally while remaining undetected, and track which ports are open or closed.
+Port scanning is a method for discovering useful communication channels on a host. The core idea is to probe as many ports as possible, ideally while remaining undetected, and track which ports are open or closed [1]. 
 
-The port scan process involves sending requests to a range of server port addresses to identify receptive ports and determine the available services on the target machine.
+The port scan process involves sending requests to a range of server port addresses to identify receptive ports and determine the available services on the target machine [2]. 
 
 There are many port scanning methods, in this project, the TCP SYN scan and UDP scan methods are specifically used, which will be described later on.
 
@@ -51,11 +51,11 @@ The responses can be classified in three categories
 - filtered
 
 ### TCP SYN Scan
-Also referred to as "half-open" scanning, as this method simulates the three-way handshake of the reliable TCP protocol without fully completing it.
+Also referred to as "half-open" scanning, as this method simulates the three-way handshake of the reliable TCP protocol without fully completing it [2].
 
-The *advantages* of this method are that it is relatively lightweight and can be performed quickly on a fast network without firewall bottlenecks. Most importantly, it is stealthy, as it does not complete the full handshake, making detection more difficult.
+The *advantages* of this method are that it is relatively lightweight and can be performed quickly on a fast network without firewall bottlenecks. Most importantly, it is stealthy, as it does not complete the full handshake, making detection more difficult [4].
 
-First step to initiate a *three-way handshake* is to create a TCP packet with the *SYN* flag set and send it to the target host to scan the desired port(s).
+First step to initiate a *three-way handshake* is to create a TCP packet with the *SYN* flag set and send it to the target host to scan the desired port(s) [4].
 
 Now there are three options of whats about to happen in the second step
 - Target host sends a response with *SYN, ACK* flags set back
@@ -66,7 +66,7 @@ Since this method is using the TCP protocol, it is much easier to evaluate the p
 
 If the host responds with *SYN-ACK*, the port is confirmed to be open for communication.
 
-Normally, the last step would be to send a *RST* flag set packet to terminate the connection with the target host, since it would keep sending the SYN-ACK response. However, this step is unnecessary, as the operating system kernel automatically sends an RST packet when it receives an unexpected SYN-ACK response.
+Normally, the last step would be to send a *RST* flag set packet to terminate the connection with the target host, since it would keep sending the SYN-ACK response. However, this step is unnecessary, as the operating system kernel automatically sends an RST packet when it receives an unexpected SYN-ACK response [4].
 
 In conclusion, the port is classified as **OPEN**.
 
@@ -86,26 +86,26 @@ If there is still no response, the port is finally classified as **FILTERED**.
 
 ### UDP ICMP port unreachable scanning
 
-While the UDP protocol itself is rather simple, the UDP scanning proccess is more difficult when evaluating probed ports state, since the ports are not obliged to send either a acknowledgement or an error response. Only way to achieve evaluation of scanned ports, is to rely on the target host sending an *error ICMP* packet of type ICMP_PORT_UNREACH. This helps to figure out if a port is **CLOSED**, and by exclusion determine which ports are not.
+While the UDP protocol itself is rather simple, the UDP scanning proccess is more difficult when evaluating probed ports state, since the ports are not obliged to send either a acknowledgement or an error response. Only way to achieve evaluation of scanned ports, is to rely on the target host sending an *error ICMP* packet of type ICMP_PORT_UNREACH [11]. This helps to figure out if a port is **CLOSED**, and by exclusion determine which ports are not [2].
 
 ![UDP ICMP](images/udp_icmp.png)
 
 The main *disadvantage* of this method is that the UDP protocol is *less reliable* than TCP, and probe packets may fail to reach the target host.
-To mitigate this, probe packets should be retransmitted to increase the chances of receiving a response, especially if packet loss is suspected. Another challenge is *rate limiting*, as some hosts restrict the rate of ICMP error responses.
+To mitigate this, probe packets should be retransmitted to increase the chances of receiving a response, especially if packet loss is suspected. Another challenge is *rate limiting*, as some hosts restrict the rate of ICMP error responses [3].
 
 In conclusion, this method may *fail* to accurately classify port states and *is generally slower*.
 
 ### Checksum
 Checksum is a simple, generic algorithm thats serves a purpose of verifying data integrity.
 
-The principle of the algorithm is a 16-bit ones complement sum ensuring data integrity. If the data length is odd, padding is added (but not transmitted) for alignment. The checksum also includes a **pseudo-header** for additional verification to protect against misrouted segments.
+The principle of the algorithm is a 16-bit ones complement sum ensuring data integrity. If the data length is odd, padding is added (but not transmitted) for alignment. The checksum also includes a **pseudo-header** for additional verification to protect against misrouted segments [6].
 
 It prevents corrupted data being delivered, and to do so the sender **MUST** generate it and the receiver **MUST** check it. 
 
 To send probe packets to scan ports, they **MUST** be include the checksum in the protocol headers.
 
 ### Pseudo headers
-IPv4 (96 bits) and IPv6 (320 bits) pseudo-headers primarily contain the source address of the sender and the destination address of the target host, providing additional protection against misrouted segments.
+IPv4 (96 bits) and IPv6 (320 bits) pseudo-headers primarily contain the source address of the sender and the destination address of the target host, providing additional protection against misrouted segments [6].
 
 ## Implementation details
 The program consists of the following source files (located in /src)
@@ -222,18 +222,18 @@ In order to create and be able to send custom protocol packets, a raw socket wit
 #### Port scanning
 At this stage, the port scanning process begins. However, a few preparations are required, such as assembling the packet to be sent and setting up the response socket.
 
-`Packet assembly` is responsible for constructing the protocol packet. This function follows a structured pipeline where the protocol header is created, configured (addressing, checksum, etc.), and then encapsulated within an IP header.
+`Packet assembly` is responsible for constructing the protocol packet. This function follows a structured pipeline where the protocol header is created, configured (addressing, checksum, etc.), and then encapsulated within an IP header [9].
 
 **Important**: Custom IP header creation is not used, as the operating system automatically generates one. However, if needed, it can be manually created using the create_iphdr function.
 
 If the current protocol is `TCP`
-- A packet with TCP header and the *SYN, ACK* flags set is created.
+- A packet with TCP header and the *SYN, ACK* flags set is created [5].
 - The response socket is set to the already created raw socket since a TCP response is expected.
 - The custom TCP probe packet is sent using the TCP raw socket.
 
 If the current protocol is `UDP`
-- A packet with UDP header is created.
-- Response receive socket is set to a new socket, created using mentioned `create_socket` function, with ICMP or ICMPV6 as the protocol type, since ICMP response is expected.
+- A packet with UDP header is created [7].
+- Response receive socket is set to a new socket, created using mentioned `create_socket` function, with ICMP or ICMPV6 as the protocol type, since ICMP response is expected [11].
 - Custom UDP probe packet is sent using the UDP raw socket.
 
 Finally, the scanner waits for a response using `poll` function.
@@ -269,7 +269,7 @@ List of important function interfaces in `net_utils.h`:
 - `close_socket_fd`: Closes socket file descriptors.
 - `create_prot_header`: Creates a TCP/UDP header.
 - `create_prot_header`, `create_pseudo_ipv6_h`: Creates a pseudo IPv4/IPv6 header structure to be later used in checksum.
-- `calculate_checksum`: Calculates checksum of given data.
+- `calculate_checksum`: Calculates checksum of given data [8].
 - `create_iphdr`: Creates IPv4/IPv6 header. Ready to be used, but is **not** currently used in the project.
 - `packet_assembly`: Creates a TCP/UDP packet ready to be sent.
 - `filter_addresses`: Filters out misrouted packets by addressess.
@@ -364,7 +364,7 @@ Execute the scanner with root privileges
 - `--interface` It is advisable to select the correct interface and check if it supports IPv4 or IPv6 addressing, if necessary.
 - `--timeout` A higher value may improve scan accuracy, but at the expense of speed.
 - `--verbose` Useful for debugging or when detailed information is needed
-- `--ratelimit` The default value is set to 1000 milliseconds, as many hosts rate-limit ICMP port unreachable messages. The Linux kernel typically limits ICMP destination unreachable messages to one per second, so it **should not** be modified if uncertain.
+- `--ratelimit` The default value is set to 1000 milliseconds, as many hosts rate-limit ICMP port unreachable messages [10]. The Linux kernel typically limits ICMP destination unreachable messages to one per second, so it **should not** be modified if uncertain [3]. 
 - `--resend` Increases the likelihood of receiving a response, as packet loss may occur.
 
 #### Port selection formating
@@ -410,26 +410,39 @@ This project is licensed under the [GNU GPL-3.0](https://www.gnu.org/licenses/gp
 
 ## Bibliography
 
-- [1] https://en.wikipedia.org/w/index.php?title=Port_scanner&oldid=1225200572
+- [1] Wikipedia contriburos. *Port scanner* [online]. 2024. Wikipedia, The Free Encyclopedia. Available at:
+https://en.wikipedia.org/w/index.php?title=Port_scanner&oldid=1225200572 [Accessed 17 February 2025].
 
-- [2] https://nmap.org/nmap_doc
+- [2] [Nmap] Gordon Lyon. *The Art of Port Scanning* [online]. Available at:
+https://nmap.org/nmap_doc [Accessed 17 February 2025].
 
-- [3] https://nmap.org/book/scan-methods-udp-scan.html
+- [3] [Nmap] Gordon Lyon. *UDP Scan (-sU)* [online]. Nmap Network Scanning. Available at:
+https://nmap.org/book/scan-methods-udp-scan.html [Accessed 17 February 2025].
 
-- [4] https://nmap.org/book/synscan.html
+- [4] [Nmap] Gordon Lyon. *TCP SYN (Stealth) Scan (-sS)* [online]. Nmap Network Scanning. Available at:
+https://nmap.org/book/synscan.html [Accessed 17 February 2025].
 
-- [5] RFC 793: https://datatracker.ietf.org/doc/html/rfc793
+- [5] [RFC 793] Internet Engineering Task Force. *Transmission Control Protocol* [online]. 1981. DOI: 10.17487/RFC0793. Available at:
+https://datatracker.ietf.org/doc/html/rfc793 [Accessed 18 February 2025].
 
-- [6] RFC 768: https://datatracker.ietf.org/doc/html/rfc768
+- [6] [RFC 9293] Internet Engineering Task Force. *Transmission Control Protocol (TCP)* [online]. 2022. DOI: 10.17487/RFC9293. Available at:
+https://datatracker.ietf.org/doc/html/rfc9293 [Accessed 18 February 2025].
 
-- [7] RFC 1071: https://datatracker.ietf.org/doc/html/rfc1071
+- [7] [RFC 768] Internet Engineering Task Force. *User Datagram Protocol* [online]. 1980. DOI: 10.17487/RFC0768. Available at:
+https://datatracker.ietf.org/doc/html/rfc768 [Accessed 18 February 2025].
 
-- [8] RFC 791: https://datatracker.ietf.org/doc/html/rfc791#section-3.1
+- [8] [RFC 1071] Internet Engineering Task Force. *Computing the Internet Checksum* [online]. 1988. DOI: 10.17487/RFC1071. Available at:
+https://datatracker.ietf.org/doc/html/rfc1071 [Accessed 18 February 2025].
 
-- [9] RFC 1812: https://datatracker.ietf.org/doc/html/rfc1812#section-4.3.2.8
+- [9] [RFC 791] Internet Engineering Task Force. *Internet Protocol* [online]. 1981. DOI: 10.17487/RFC0791. Available at:
+https://datatracker.ietf.org/doc/html/rfc791#section-3.1 [Accessed 18 February 2025].
 
-- [10] RFC 9293: https://datatracker.ietf.org/doc/html/rfc9293
+- [10] [RFC 1812] Internet Engineering Task Force. *Requirements for IP Version 4 Routers* [online]. 1995. DOI: 10.17487/RFC1812. Available at:
+https://datatracker.ietf.org/doc/html/rfc1812#section-4.3.2.8 [Accessed 1 March 2025].
 
-- [11] https://git.fit.vutbr.cz/NESFIT/IPK-Projects/src/branch/master#documentation-instructions
+- [11] [RFC 792] Internet Engineering Task Force. *Internet Control Message Protocol* [online]. 1981. DOI: 10.17487/RFC0792. Available at:
+https://datatracker.ietf.org/doc/html/rfc792 [Accessed 17 February 2025].
 
-- [12] https://git.fit.vutbr.cz/NESFIT/IPK-Projects/src/branch/master/Project_1/omega
+- [12] [RFC 4443] Internet Engineering  Task Force. * Internet Control Message Protocol (ICMPv6)
+        for the Internet Protocol Version 6 (IPv6) Specification* [online]. 2006. DOI: 10.17487/RFC4443. Available at:
+https://datatracker.ietf.org/doc/html/rfc4443 [Accessed 17 February 2025].
