@@ -7,10 +7,10 @@ LOGIN = xpazurm00
 all: $(EXECUTABLE)
 	@echo "Project compiled successfuly!"
 
-$(EXECUTABLE): $(wildcard *.c)
+$(EXECUTABLE): $(wildcard src/*.c)
 	$(CC) $(CFLAGS) -o $@ $^
 
-%o : %c
+src/%o : src/%c
 	$(CC) $(CFLAGS) -c $<
 
 run:
