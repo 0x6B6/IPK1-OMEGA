@@ -410,7 +410,7 @@ This project is licensed under the [GNU GPL-3.0](https://www.gnu.org/licenses/gp
 
 ## Bibliography
 
-- [1] Wikipedia contriburos. *Port scanner* [online]. 2024. Wikipedia, The Free Encyclopedia. Available at:
+- [1] Wikipedia contributors. *Port scanner* [online]. 2024. Wikipedia, The Free Encyclopedia. Available at:
 https://en.wikipedia.org/w/index.php?title=Port_scanner&oldid=1225200572 [Accessed 17 February 2025].
 
 - [2] [Nmap] Gordon Lyon. *The Art of Port Scanning* [online]. Available at:
