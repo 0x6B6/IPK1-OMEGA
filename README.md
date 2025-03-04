@@ -443,6 +443,6 @@ https://datatracker.ietf.org/doc/html/rfc1812#section-4.3.2.8 [Accessed 1 March 
 - [11] [RFC 792] Internet Engineering Task Force. *Internet Control Message Protocol* [online]. 1981. DOI: 10.17487/RFC0792. Available at:
 https://datatracker.ietf.org/doc/html/rfc792 [Accessed 17 February 2025].
 
-- [12] [RFC 4443] Internet Engineering  Task Force. * Internet Control Message Protocol (ICMPv6)
+- [12] [RFC 4443] Internet Engineering  Task Force. *Internet Control Message Protocol (ICMPv6)
         for the Internet Protocol Version 6 (IPv6) Specification* [online]. 2006. DOI: 10.17487/RFC4443. Available at:
 https://datatracker.ietf.org/doc/html/rfc4443 [Accessed 17 February 2025].
