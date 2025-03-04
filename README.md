@@ -325,7 +325,7 @@ gcc -std=c17 -Wall -Wextra -Werror -D_GNU_SOURCE -Wpedantic
 - Memory handling
 	- `memory_test.sh`
 
-#### Parameter parsing
+### Parameter parsing
 It is crucial to ensure the parsing functionality works as intended, so that the scanner correctly interprets and processes
 the input parameters. This gurantees that the program behaves as expected.
 
@@ -343,7 +343,7 @@ The program inputs are various combinations of parameters, trying to cover all o
 
 All tests are expected to pass, actual outputs of the script can be generated and printed to standard output by executing the script.
 
-#### Port scan results
+### Port scan results
 The most important part to test, the scanner core. It is essential to properly test whether the scanner's evaluation results are trustworthy. If not, it could mean incorrect protocol header settings, incorrect checksum calculation, or generally incorrect packet assembly.
 
 As part of the testing of this section, the nmap tool was used for reference, the netcat tool for simulating port opening on a local device, and wireshark for monitoring network traffic.
@@ -352,7 +352,7 @@ There are a total of 4 test scripts in the scanning test suite, namely:
   - `simple_test.sh`: A simple TCP SYN/UDP ICMP scanning test on a public network and localhost. In the case of localhost, the netcat tool is used to verify that the scanner correctly captures the opening of ports. 
   - `nc_test.sh`: TCP SYN scan test of localhost using netcat to open specific ports and nmap for reference output, which will then be compared to the scanner output.
   - `tcp_test.sh`: A test focused on TCP SYN scanning of several different hosts on a public network that use both IPv4 and IPv6 addressing. Specifically, ports 21,22,53,80,443,110,143,3389 are scanned to verify the scanner's capabilities. The nmap tool serves as reference output in the test.
-  - `udp_test.sh`: Test zaměřený na UDP ICMP skenování několika různých hostů na veřejné síti, kteři využívají IPv4 i IPv6 adresování. Konkrétně jsou skenovány porty 53,161,123 pro ověřaení schopnosti skeneru. Nástroj nmap v testu slouží jako referenční výstup.
+  - `udp_test.sh`: A test focused on UDP ICMP scanning of several different hosts on a public network that use both IPv4 and IPv6 addressing. Specifically, ports 53,161,123 are scanned to verify the scanner's capabilities. The nmap tool serves as reference output in the test.
 
 The outputs of all test scripts, including the expected reference output (if the script has one, else its printed to STDOUT), are located in directories that correspond to the test name. If Nmap was used for reference output, it is compared to the actual scanner output to verify correct evaluation of the states of the scanned ports.
 
@@ -366,7 +366,7 @@ The .pcapng files may require additional permissions to be opened, use the follo
   sudo chmod +x *.pcapng
 ```
 
-#### Memory handling
+### Memory handling
 Memory leaks can lead to serious performance degradation, in the worse case, invalid memory accesses cause abrupt end (e.g, SEGFAULT, SIGSEGV).
 
 The program should **NOT** have any memory leaks or invalid memory accesses.
@@ -378,7 +378,7 @@ If there are any memory issues found, the test script prints *No memory issues d
 
 Memory test outputs can be found generated in the *memory_result* directory.
 
-#### Other
+### Other
 In addition to the overhead of the test scripts, ping and ping6 were used to verify IPv4 and IPv6 functionality in the test environment, and lsof was used to check the correct closing of file descriptors.
 
 ## Execution
