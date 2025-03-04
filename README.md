@@ -8,28 +8,28 @@ Simple TCP and UDP network L4 scanner for *Linux*, implemented in *C* programmin
 - [@Marek Pazúr (xpazurm00)](https://www.github.com/0x6b6)
 
 ### Content structure
-- [Documentation](##Documentation)
-   - [Theory](###Theory)
-     - [L4 network scanning](####L4-network-scanning)
-     - [TCP SYN Scan](####TCP-SYN-Scan)
-     - [UDP ICMP Scan](####UDP-ICMP-port-unreachable-scanning)
-     - [Checksum](####Checksum)
-     - [Pseudo headers](####Pseudo-headers)
-   - [Implementation details](##Implementation-details)
-     - [Parameter parsing](###Parameter-parsing)
-     - [Scanning](###Scanning)
-     - [Network and utilities](###Network-and-utilities)
-     - [Compilation](###Compilation)
-   - [Testing](##Testing)
-     - [Testing devices]
-     - [Testing environment]
-     - [Testing tools used]
-     - [Test cases to be tested]
-- [Execution](##Execution)
-   - [Parameter specification](###Parameter-specification)
-- [Additional features](##Additional-features)
-- [License](##License)
-- [Bibliography](##Bibliography)
+- [Documentation](#documentation)
+   - [Theory](#theory)
+     - [L4 network scanning](#l4-network-scanning)
+     - [TCP SYN Scan](#tcp-syn-Scan)
+     - [UDP ICMP Scan](#udp-icmp-port-unreachable-scanning)
+     - [Checksum](#checksum)
+     - [Pseudo headers](#pseudo-headers)
+   - [Implementation details](#implementation-details)
+     - [Parameter parsing](#parameter-parsing)
+     - [Scanning](#scanning)
+     - [Network and utilities](#network-and-utilities)
+     - [Compilation](#compilation)
+   - [Testing](#testing)
+     - [Testing devices](#testing-devices)
+     - [Testing environment](#testing-environment)
+     - [Testing tools used](#testing-tools-used)
+     - [Test cases](#test-cases)
+- [Execution](#execution)
+   - [Parameter specification](#parameter-specification)
+- [Additional features](#additional-features)
+- [License](#license)
+- [Bibliography](#bibliography)
 ## Documentation
 This document includes
 - Executive summary of the theory necessary to understand the functionality of the implemented application
@@ -297,7 +297,7 @@ gcc -std=c17 -Wall -Wextra -Werror -D_GNU_SOURCE -Wpedantic
 - valgrind
 - lsof
 
-#### Test cases to be tested
+#### Test cases
 - Port scan correct evaluation
 - Parameter parsing
 - Memory leaks & file descriptor handling
