@@ -24,7 +24,11 @@ Simple TCP and UDP network L4 scanner for *Linux*, implemented in *C* programmin
      - [Testing devices](#testing-devices)
      - [Testing environment](#testing-environment)
      - [Testing tools used](#testing-tools-used)
-     - [Test cases](#test-cases)
+     - [Test suite](#test-suite)
+     - [Parameter parsing](#parameter-parsing)
+     - [Port scan results](#port-scan-results)
+     - [Memory handling](#memory-handling)
+     - [Other](#other)
 - [Execution](#execution)
    - [Parameter specification](#parameter-specification)
 - [Additional features](#additional-features)
@@ -312,8 +316,6 @@ gcc -std=c17 -Wall -Wextra -Werror -D_GNU_SOURCE -Wpedantic
 - valgrind: Memory leaks
 - lsof: Track file descriptors
 
-*Test files can be found in the tests directory.*
-
 ### Test suite
 - Parameter parsing
 	- `parse_test.sh`
@@ -324,6 +326,8 @@ gcc -std=c17 -Wall -Wextra -Werror -D_GNU_SOURCE -Wpedantic
   - `udp_test.sh`
 - Memory handling
 	- `memory_test.sh`
+
+Test files can be found in the tests directory.
 
 ### Parameter parsing
 It is crucial to ensure the parsing functionality works as intended, so that the scanner correctly interprets and processes
