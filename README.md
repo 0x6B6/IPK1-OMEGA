@@ -68,11 +68,19 @@ If the host responds with *SYN-ACK*, the port is confirmed to be open for commun
 
 Normally, the last step would be to send a *RST* flag set packet to terminate the connection with the target host, since it would keep sending the SYN-ACK response. However, this step is unnecessary, as the operating system kernel automatically sends an RST packet when it receives an unexpected SYN-ACK response.
 
+![TCP SYN ACK](images/tcp_syn_ack.png)
+
 In conclusion, the port is classified as **OPEN**.
+
+![TCP RST ACK](images/tcp_rst_ack.png)
 
 If the host responds with *RST*, the port is confirmed to be **CLOSED**.
 
+![Retransmission](images/tcp_resend.png)
+
 If no response is received, it may indicate packet loss, so the *TCP SYN* packet is retransmitted an arbitrary number of times.
+
+![Timeout](images/tcp_timeout.png)
 
 If there is still no response, the port is finally classified as **FILTERED**.
 
@@ -80,6 +88,8 @@ If there is still no response, the port is finally classified as **FILTERED**.
 ### UDP ICMP port unreachable scanning
 
 While the UDP protocol itself is rather simple, the UDP scanning proccess is more difficult when evaluating probed ports state, since the ports are not obliged to send either a acknowledgement or an error response. Only way to achieve evaluation of scanned ports, is to rely on the target host sending an *error ICMP* packet of type ICMP_PORT_UNREACH. This helps to figure out if a port is **CLOSED**, and by exclusion determine which ports are not.
+
+![UDP ICMP](images/udp_icmp.png)
 
 The main *disadvantage* of this method is that the UDP protocol is *less reliable* than TCP, and probe packets may fail to reach the target host.
 To mitigate this, probe packets should be retransmitted to increase the chances of receiving a response, especially if packet loss is suspected. Another challenge is *rate limiting*, as some hosts restrict the rate of ICMP error responses.
