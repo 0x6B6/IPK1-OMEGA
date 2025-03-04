@@ -68,22 +68,21 @@ If the host responds with *SYN-ACK*, the port is confirmed to be open for commun
 
 Normally, the last step would be to send a *RST* flag set packet to terminate the connection with the target host, since it would keep sending the SYN-ACK response. However, this step is unnecessary, as the operating system kernel automatically sends an RST packet when it receives an unexpected SYN-ACK response.
 
-![TCP SYN ACK](images/tcp_syn_ack.png)
-
 In conclusion, the port is classified as **OPEN**.
 
-![TCP RST ACK](images/tcp_rst_ack.png)
+![TCP SYN ACK](images/tcp_syn_ack.png)
 
 If the host responds with *RST*, the port is confirmed to be **CLOSED**.
 
-![Retransmission](images/tcp_resend.png)
+![TCP RST ACK](images/tcp_rst_ack.png)
 
 If no response is received, it may indicate packet loss, so the *TCP SYN* packet is retransmitted an arbitrary number of times.
 
-![Timeout](images/tcp_timeout.png)
+![Retransmission](images/tcp_resend.png)
 
 If there is still no response, the port is finally classified as **FILTERED**.
 
+![Timeout](images/tcp_timeout.png)
 
 ### UDP ICMP port unreachable scanning
 
