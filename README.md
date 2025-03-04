@@ -295,36 +295,42 @@ gcc -std=c17 -Wall -Wextra -Werror -D_GNU_SOURCE -Wpedantic
 ## Testing
 
 #### Testing devices
-- Desktop PC with ethernet cable connection (eth0, ens33)
-- Laptop with wireless connection (wlo1)
+- Desktop PC with ethernet cable connection (eth0, ens33) (AMD Ryzen 7 5800X3D (2) @ 3.399GHz)
+- Laptop with wireless connection (wlo1) (Intel Core i5-12450H (2) @ 2.199GHz)
 
 #### Testing environment
-- OS: Ubuntu 22.04.5 LTS x86_64, Kernel: 6.8.0-52-generic
-- OS: Ubuntu 24.04.2 LTS, x86_64
-- OS: Ubuntu 24.04 LTS, amd64 (reference virtual machine IPK25_Ubuntu24.ova)
+- OS: Ubuntu 22.04.5 LTS x86_64, Kernel: 6.8.0-52-generic, Host: VMware Virtual Platform
+- OS: Ubuntu 24.04.2 LTS x86_64, Kernel: 6.11, Host: Oracle VirtualBox 1.2
+- OS: Ubuntu 24.04.1 LTS x86_64 (reference virtual machine IPK25_Ubuntu24.ova), Kernel: 6.8.0-52-generic, Host: Oracle VirtualBox 1.2
+
+#### Network configuration
+- Network Address Translation (NAT) is enabled.
 
 #### Testing tools used
-- nmap
-- netcat
-- wireshark
-- ping
-- ping6
-- valgrind
-- lsof
+- nmap: Similiar functionality.
+- netcat: Simulate open ports.
+- wireshark: Track network traffic.
+- ping: Network connectivity diagnostics.
+- ping6: IPv6 network connectivity diagnostics.
+- valgrind: Memory leaks
+- lsof: Track file descriptors
 
-#### Test cases
-- Port scan correct evaluation
+### Test suite
 - Parameter parsing
+- Port scan results
 - Memory leaks & file descriptor handling
 
-what was tested
+#### Parameter parsing
+
+#### Port scanning results
+
+#### Memory leaks & file descriptor handling
 
 why it was tested
 
 how it was tested
 
 what were the inputs, expected outputs, and actual outputs
-
 
 ## Execution
 *Root privileges are required in order to scan ports.*

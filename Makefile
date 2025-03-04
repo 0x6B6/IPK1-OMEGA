@@ -17,7 +17,7 @@ run:
 	@./$(EXECUTABLE)
 
 clean:
-	rm -f *.o $(EXECUTABLE)
+	rm -f src/*.o $(EXECUTABLE)
 
 zip:
 	zip $(LOGIN).zip *.c *.h README.md Makefile CHANGELOD.md

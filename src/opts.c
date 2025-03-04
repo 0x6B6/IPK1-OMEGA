@@ -167,15 +167,15 @@ int parse_opt(cfg_t *cfg, int argc, char *argv[]) { /* Parses arguments */
 				opts |= F_TIMEOUT;
 			}
 
-			else if (is_opt(argv[i], "-l", "--rl")) {
+			else if (is_opt(argv[i], "-l", "--ratelimit")) {
 				if (opts & F_RATE_LIMIT) { /* Duplicite parameter catch */
-					fprintf(stderr, "ipk-l4-scan: error: Multiple [-l | --rl] parameters '%s' given!\n", argv[i]);
+					fprintf(stderr, "ipk-l4-scan: error: Multiple [-l | --ratelimit] parameters '%s' given!\n", argv[i]);
 					return EXIT_FAILURE;
 				}
 
 				++i; /* Move to the additional argument */
 
-				CHECK_PARAM(i, argc, argv, "Missing [-l | -- rl] [rate limit] (in milliseconds) argument!");
+				CHECK_PARAM(i, argc, argv, "Missing [-l | --ratelimit] [rate limit] (in milliseconds) argument!");
 
 				if (parse_number(&cfg->rate_limit, argv[i])) {
 					fprintf(stderr,"ipk-l4-scan: error: Unable to parse rate limit argument\n");
@@ -185,15 +185,15 @@ int parse_opt(cfg_t *cfg, int argc, char *argv[]) { /* Parses arguments */
 				opts |= F_RATE_LIMIT;
 			}
 
-			else if (is_opt(argv[i], "-r", "--rs")) {
+			else if (is_opt(argv[i], "-r", "--resend")) {
 				if (opts & F_RESEND) { /* Duplicite parameter catch */
-					fprintf(stderr, "ipk-l4-scan: error: Multiple [-r | --rs] parameters '%s' given!\n", argv[i]);
+					fprintf(stderr, "ipk-l4-scan: error: Multiple [-r | --resend] parameters '%s' given!\n", argv[i]);
 					return EXIT_FAILURE;
 				}
 
 				++i; /* Move to the additional argument */
 
-				CHECK_PARAM(i, argc, argv, "Missing [-r | -- resend] [number of packet retransmissions] argument!");
+				CHECK_PARAM(i, argc, argv, "Missing [-r | --resend] [number of packet retransmissions] argument!");
 
 				if (parse_number(&cfg->retry, argv[i])) {
 					fprintf(stderr,"ipk-l4-scan: error: Unable to parse resend argument\n");
