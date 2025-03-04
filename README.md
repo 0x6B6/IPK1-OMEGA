@@ -187,6 +187,8 @@ Next, the device interface source address is fetched using the `get_ifaddr` func
 
 Once the data is collected, the scanner structure is initialized using the `set_scanner` function, and the *port structures* are prepared for processing, separately for the TCP and UDP protocols.
 
+![Start scan diagram](images/diagram_start_scan.png)
+
 #### Port processing
 Both *TCP* and *UDP* *port structures* are iterated through using for loops. It is distinguished whether it is a *range* or a *list*.
 
