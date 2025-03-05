@@ -24,7 +24,7 @@ scan_hosts() {
 }
 
 parse_results() {
-  output=$(grep -Eo '([0-9]+/tcp\s+[a-z]+)' "$1" | awk '{print $1, $2}' | sort)
+  output=$(grep -Eo '([0-9]+/tcp\s+[a-z]+)' "$1" | awk '{print $1, $2}' | sort | uniq)
   echo "$output"
   echo "$output" > "$1".log
 }
