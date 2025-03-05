@@ -347,6 +347,8 @@ The program inputs are various combinations of parameters, trying to cover all o
 
 All tests are expected to pass, actual outputs of the script can be generated and printed to standard output by executing the script.
 
+![Parse test](images/parse.png)
+
 ### Port scan results
 The most important part to test, the scanner core. It is essential to properly test whether the scanner's evaluation results are trustworthy. If not, it could mean incorrect protocol header settings, incorrect checksum calculation, or generally incorrect packet assembly.
 
@@ -369,6 +371,8 @@ The .pcapng files may require additional permissions to be opened, use the follo
 ```bash
   sudo chmod +x *.pcapng
 ```
+Test example
+![Parse test](images/nctest.png)
 
 ### Memory handling
 Memory leaks can lead to serious performance degradation, in the worse case, invalid memory accesses cause abrupt end (e.g, SEGFAULT, SIGSEGV).
@@ -381,6 +385,8 @@ analysis `Valgrind` memory debugging tool.
 If there are any memory issues found, the test script prints *No memory issues detected* to standard output.
 
 Memory test outputs can be found generated in the *memory_result* directory.
+
+![Parse test](images/memtest.png)
 
 ### Other
 In addition to the overhead of the test scripts, ping and ping6 were used to verify IPv4 and IPv6 functionality in the test environment, and lsof was used to check the correct closing of file descriptors.
