@@ -231,10 +231,10 @@ int port_scan(cfg_t *cfg, l4_scanner *scanner, int protocol) {
 		}
 		/* Response received */
 		else {
-			struct sockaddr source_address;
-			socklen_t sa_len = sizeof(source_address);
+			struct sockaddr_storage source_address; // Enough space for both IPv4 and IPv6 adresses
+			socklen_t sa_len = sizeof(struct sockaddr_storage);
 
-			int rr = recvfrom(recv_socket_fd, response_packet, PACKET_SIZE, 0, &source_address, &sa_len);
+			int rr = recvfrom(recv_socket_fd, response_packet, PACKET_SIZE, 0, (struct sockaddr *) &source_address, &sa_len);
 			
 			if (rr < 0) { // receive result
 				perror("ipk-l4-scan: error: recvfrom");
@@ -242,7 +242,8 @@ int port_scan(cfg_t *cfg, l4_scanner *scanner, int protocol) {
 				return EXIT_FAILURE;
 			}
 
-			unsigned char *bp = response_packet + iphdr_offset; /* Packet base pointer (Skip over ip header) */
+			/* Packet base pointer (Skip over ip header), Important: The IPv6 protocol DOES NOT return an IP header unlike IPv4  */
+			unsigned char *bp = response_packet + (scanner->family == AF_INET ? iphdr_offset : 0);
 
 			/* Throw away loopback TCP packets that match the ones sent */
 			if (strncmp(cfg->interface, "lo", 2) == 0 && protocol == TCP) {
@@ -252,7 +253,7 @@ int port_scan(cfg_t *cfg, l4_scanner *scanner, int protocol) {
 			}
 
 			/* Response packet filter and data extraction */
-			if (filter_addresses(&source_address, scanner->destination_addr, scanner->family) == 0) {
+			if (filter_addresses((struct sockaddr *) &source_address, scanner->destination_addr, scanner->family) == 0) {
 				if (extract_data(bp, scanner->destination_port, scanner->family, protocol, iphdr_offset, cfg->verbose) == 0) {
 					break;
 				}

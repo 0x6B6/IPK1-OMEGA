@@ -154,6 +154,7 @@ struct sockaddr* get_ifaddr(struct ifaddrs *ifaddr, const char *interface, sa_fa
 
 		if (strcmp(ifaddr->ifa_name, interface) == 0 && family == ifaddr->ifa_addr->sa_family) {
 			address = ifaddr->ifa_addr;
+			break;
 		}
 
 		ifaddr = ifaddr->ifa_next;
@@ -288,11 +289,11 @@ pseudo_ipv6_h create_pseudo_ipv6_h(l4_scanner *scanner, int protocol, uint32_t p
 		   sizeof(struct in6_addr)
 		   );
 	
-	/* Zero padding, memset to zero just to be sure */
-	memset(ph.zeroes, 0, sizeof(uint8_t) * 3);
-
 	/* TCP/UDP header size */
 	ph.tcp_udp_length = htonl(protocol_h_length);
+	
+	/* Zero padding, memset to zero just to be sure */
+	memset(ph.zeroes, 0, sizeof(uint8_t) * 3);
 	
 	/* TCP/UDP protocol */
 	ph.prot_header = protocol;
