@@ -497,6 +497,21 @@ int filter_addresses(struct sockaddr *source, struct sockaddr *destination, sa_f
 	return EXIT_SUCCESS;
 }
 
+/* Filters out loopback sent packet */
+int filter_lo_packet(unsigned char *query_packet, unsigned char *response_packet) {
+	int equal = 0;
+
+	/* Compare packets bytes */
+	equal = memcmp(query_packet, response_packet, sizeof(struct tcphdr));
+
+	/* Socket received the same packet it sent */
+	if (!equal) {
+		return EXIT_FAILURE;
+	}
+
+	return EXIT_SUCCESS;
+}
+
 /* Filters out the ports */
 int filter_ports(uint16_t source, uint16_t destination) {
 	if (ntohs(source) != destination) {
@@ -526,7 +541,7 @@ int extract_data(unsigned char *packet, uint16_t destination_port, sa_family_t f
 		else if(t->th_flags & TH_RST && t->th_flags & TH_ACK) {
 			printf("closed%s\n", verbose ? " [RST, ACK]" : "");
 		}
-		else printf("filtered\n");	
+		else printf("filtered%s\n", verbose ? " [Other flags]" : "");
 	}
 
 	/* ICMP TCP response */

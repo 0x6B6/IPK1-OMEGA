@@ -1,5 +1,0 @@
-Interesting ports on www.vutbr.cz (147.229.2.90):
-PORT STATE
-53/udp open
-161/udp open
-123/udp open

@@ -244,6 +244,13 @@ int port_scan(cfg_t *cfg, l4_scanner *scanner, int protocol) {
 
 			unsigned char *bp = response_packet + iphdr_offset; /* Packet base pointer (Skip over ip header) */
 
+			/* Throw away loopback TCP packets that match the ones sent */
+			if (strncmp(cfg->interface, "lo", 2) == 0 && protocol == TCP) {
+				if (filter_lo_packet(query_packet + iphdr_offset, bp)) {
+					continue;
+				}
+			}
+
 			/* Response packet filter and data extraction */
 			if (filter_addresses(&source_address, scanner->destination_addr, scanner->family) == 0) {
 				if (extract_data(bp, scanner->destination_port, scanner->family, protocol, iphdr_offset, cfg->verbose) == 0) {

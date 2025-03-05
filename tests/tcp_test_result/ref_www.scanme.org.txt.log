@@ -1,8 +1,0 @@
-110/tcp filtered
-143/tcp filtered
-21/tcp filtered
-22/tcp open
-3389/tcp filtered
-443/tcp filtered
-53/tcp filtered
-80/tcp open

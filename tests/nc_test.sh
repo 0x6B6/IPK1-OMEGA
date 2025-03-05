@@ -8,7 +8,7 @@ POSIXLY_CORRECT=yes
 #Variables
 IF="lo"
 TARGET="localhost"
-PORTS="12346,12347,12348,7777"
+PORTS="12345,12346,12347,12348,7777,8888,9999,36936,16969"
 TEST_DIR="nc_test_result"
 
 mkdir -p "$TEST_DIR"
@@ -48,9 +48,16 @@ echo -e "Scanning ports $PORTS on localhost before opening them with netcat\n"
 
 scan_hosts
 
+nc -l -p 12345 &
 nc -l -p 12346 &
 nc -l -p 12347 &
 nc -l -p 12348 &
+nc -l -p 7777 &
+nc -l -p 8888 &
+nc -l -p 9999 &
+nc -l -p 36936 &
+nc -l -p 16969 &
+
 echo -e "\nNow listening on ports $PORTS"
 
 echo "Scanning ports $PORTS on localhost with netcat activated\n"

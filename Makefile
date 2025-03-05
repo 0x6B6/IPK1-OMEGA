@@ -18,8 +18,9 @@ run:
 
 clean:
 	rm -f src/*.o $(EXECUTABLE)
+	rm -rf tests/*_result
 
 zip:
-	zip $(LOGIN).zip *.c *.h README.md Makefile CHANGELOD.md
+	zip $(LOGIN).zip src/ tests/ images/ README.md Makefile CHANGELOG.md
 
 .PHONY: all run clean

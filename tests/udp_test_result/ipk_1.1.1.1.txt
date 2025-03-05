@@ -1,5 +1,0 @@
-Interesting ports on 1.1.1.1 (1.1.1.1):
-PORT STATE
-53/udp open
-161/udp open
-123/udp open

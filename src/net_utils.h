@@ -329,6 +329,19 @@ int packet_assembly(l4_scanner *scanner, unsigned char *packet, int protocol, in
  */
 int filter_addresses(struct sockaddr *source, struct sockaddr *destination, sa_family_t family);
 
+
+/**
+ * @brief Filters loopback packets
+ * 
+ * This function filters out unwanted loopback packets that match the ones originally sent, which prevents
+ * processing of probe packets that were echoed back by the system, ensuring only relevant responses are received.
+ * This occurs for the TCP protocol, since it send TCP header back.
+ * 
+ * @param query_packet Sent port probe packet
+ * @param response_packet Received response packet
+ */
+int filter_lo_packet(unsigned char *query_packet, unsigned char *response_packet);
+
 /**
  * @brief Filters response by ports
  * 
