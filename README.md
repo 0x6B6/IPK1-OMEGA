@@ -362,6 +362,8 @@ There are a total of 4 test scripts in the scanning test suite, namely:
 
 The outputs of all test scripts, including the expected reference output (if the script has one, else its printed to STDOUT), are located in directories that correspond to the test name. If Nmap was used for reference output, it is compared to the actual scanner output to verify correct evaluation of the states of the scanned ports.
 
+![Parse test](images/nctest.png)
+
 *Note*: However, there were a few edge cases where nmap evaluated the port as filtered, while the scanner evaluated it as closed, and even in Wireshark, the packets had RST, ACK flags.
 
 For each of the above test scripts, the wireshark tool was used to capture network traffic, which allows for detailed analysis of the scanning process, such as viewing packet headers. This allows for errors in the construction of probe packets to be discovered. The .pcapng files are located in the tests/PCAPs directory.
@@ -371,8 +373,6 @@ The .pcapng files may require additional permissions to be opened, use the follo
 ```bash
   sudo chmod +x *.pcapng
 ```
-Test example
-![Parse test](images/nctest.png)
 
 ### Memory handling
 Memory leaks can lead to serious performance degradation, in the worse case, invalid memory accesses cause abrupt end (e.g, SEGFAULT, SIGSEGV).
@@ -384,9 +384,9 @@ analysis `Valgrind` memory debugging tool.
 
 If there are any memory issues found, the test script prints *No memory issues detected* to standard output.
 
-Memory test outputs can be found generated in the *memory_result* directory.
-
 ![Parse test](images/memtest.png)
+
+Memory test outputs can be found generated in the *memory_result* directory.
 
 ### Other
 In addition to the overhead of the test scripts, ping and ping6 were used to verify IPv4 and IPv6 functionality in the test environment, and lsof was used to check the correct closing of file descriptors.
