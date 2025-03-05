@@ -265,6 +265,7 @@ int port_scan(cfg_t *cfg, l4_scanner *scanner, int protocol) {
 		close(recv_socket_fd);
 	}
 
+	/* Ratelimit between UDP scans */
 	if (protocol == UDP) {
 		rate_limit(cfg->rate_limit);
 	}

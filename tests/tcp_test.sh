@@ -16,7 +16,7 @@ mkdir -p "$TEST_DIR"
 scan_hosts() {
   for host in "${TARGET[@]}"; do
 
-    sudo ../ipk-l4-scan -i $IF $host -t $TCP > "$TEST_DIR"/ipk_$host.txt
+    sudo ../ipk-l4-scan -w 1500 -i $IF $host -t $TCP > "$TEST_DIR"/ipk_$host.txt
     sudo nmap -e $IF $host -sS -p $TCP > "$TEST_DIR"/ref_$host.txt
 
     ipk_result=$(parse_results "$TEST_DIR"/ipk_$host.txt)
@@ -45,6 +45,6 @@ compare_results() {
   fi
 }
 
-echo "Basic TCP test, this may take a while..."
+echo "Basic IPv4 & IPv6 TCP test, this may take a while..."
 
 scan_hosts

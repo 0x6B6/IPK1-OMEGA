@@ -8,7 +8,7 @@ POSIXLY_CORRECT=yes
 #Variables
 IF="ens33"
 TARGET=("www.vutbr.cz" "1.1.1.1" "www.scanme.org" "8.8.8.8")
-UDP="53,161,123"
+UDP="21,53,67,111,123,161"
 TEST_DIR="udp_test_result"
 
 mkdir -p "$TEST_DIR"
@@ -16,7 +16,7 @@ mkdir -p "$TEST_DIR"
 scan_hosts() {
   for host in "${TARGET[@]}"; do
 
-    sudo ../ipk-l4-scan -i $IF $host -u $UDP -w 1000 > "$TEST_DIR"/ipk_$host.txt
+    sudo ../ipk-l4-scan -i $IF $host -u $UDP -w 1000 -r 0 > "$TEST_DIR"/ipk_$host.txt
     sudo nmap -e $IF $host -sU -p $UDP > "$TEST_DIR"/ref_$host.txt
 
     ipk_result=$(parse_results "$TEST_DIR"/ipk_$host.txt)
@@ -45,6 +45,6 @@ compare_results() {
   fi
 }
 
-echo "Basic UDP test, this may take a while..."
+echo "Basic IPv4 & IPv6 UDP test, this may take a while..."
 
 scan_hosts
