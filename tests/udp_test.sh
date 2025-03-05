@@ -6,7 +6,7 @@ POSIXLY_CORRECT=yes
 #Date: 04.03.2025
 
 #Variables
-IF="ens33"
+IF="enp0s3"
 TARGET=("www.vutbr.cz" "1.1.1.1" "www.scanme.org" "8.8.8.8")
 UDP="21,53,67,111,123,161"
 TEST_DIR="udp_test_result"

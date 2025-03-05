@@ -6,7 +6,7 @@ POSIXLY_CORRECT=yes
 #Date: 04.03.2025
 
 #Variables
-IF="ens33"
+IF="enp0s3"
 TARGET=("www.vutbr.cz" "1.1.1.1" "www.scanme.org" "8.8.8.8")
 TCP="21,22,53,80,443,110,143,3389"
 TEST_DIR="tcp_test_result"
