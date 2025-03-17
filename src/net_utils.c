@@ -30,6 +30,17 @@
 
 #include "net_utils.h"
 
+/* Random port from range <1024,65535> */
+int randomize_port(void) {
+	srand(time(NULL));
+
+	const int port_min = 1024;
+	const int port_max = 65535;
+	const int port_range = port_max - port_min + 1; // Port max - port min
+
+	return (rand() % port_range) + port_min;
+}
+
 /* Print port service */
 void service(uint16_t port, int protocol) {
 	struct servent *service;

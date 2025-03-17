@@ -25,4 +25,7 @@
    - Rate limit - Rate limit for sending UDP packets
 
 # Issues
-Unaware of any limitations or potential issues.
+If the interface is other than 'lo' and the scanned device is localhost,
+no response is received on the socket, although the probe packet is sent
+and the corresponding response is received back (can be seen in wireshark or tcpdump).
+Temporarily solved by a condition in the scan.h file.

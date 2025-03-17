@@ -66,6 +66,15 @@ typedef struct pseudo_ipv6_h {
  */
 
 /**
+ * @brief Random source port generator
+ * 
+ * Generates a random number to be used as a source port.
+ * 
+ * @return Returns random number from the range <1024,65535>
+ */
+int randomize_port(void);
+
+/**
  * @brief Print port service by used protocol
  * 
  * This simple function prints port service of selected port by used 

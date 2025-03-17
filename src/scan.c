@@ -22,7 +22,7 @@
 #include "opts.h"
 #include "net_utils.h"
 
-#define SOURCE_PORT 12345 // Should be randomized instead?
+#define SOURCE_PORT 12345 // Should be randomized instead, used for debug purposes
 
 void set_scanner(l4_scanner *s, struct sockaddr *src_a, struct sockaddr *dst_a, socklen_t src_al, socklen_t dst_al, sa_family_t family) {
 		/* Interface source address */
@@ -34,7 +34,7 @@ void set_scanner(l4_scanner *s, struct sockaddr *src_a, struct sockaddr *dst_a, 
 		s->destination_addr_len = dst_al;
 
 		/* Source port */
-		s->source_port = SOURCE_PORT;
+		s->source_port = randomize_port();
 
 		/* Host address family (IPv4/IPv6) */
 		s->family = family;
@@ -55,6 +55,12 @@ int start_scan(cfg_t *cfg) {
 	}
 
 	ai = addrinfo; // Temporary variable to preserve head of LL struct
+
+	/* Fixes the loopback route issue */
+	if (strcasecmp(cfg->dn_ip, "localhost") == 0 || 
+    	strcasecmp(cfg->dn_ip, "127.0.0.1") == 0 || 
+    	strcasecmp(cfg->dn_ip, "::1") == 0)
+		cfg->interface = "lo"; 
 
 	/* Iterate through all host ip addresses */
 	while (ai) {
