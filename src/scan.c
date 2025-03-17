@@ -75,7 +75,7 @@ int start_scan(cfg_t *cfg) {
 			return EXIT_FAILURE;
 		}
 
-		printf("Interesting ports on %s (%s):\nPORT STATE\n", cfg->dn_ip, cfg->addr_str);
+		//printf("Interesting ports on %s (%s):\nPORT STATE\n", cfg->dn_ip, cfg->addr_str);
 
 		/* Iterate given ports and scan them by using corresponding protocol procedures */
 		if (process_ports(cfg, &s, TCP) || process_ports(cfg, &s, UDP)) {
@@ -225,7 +225,7 @@ int port_scan(cfg_t *cfg, l4_scanner *scanner, int protocol) {
 				if (cfg->verbose)
 					printf("\033[0;33m[TIMEOUT]\033[0m ");
 
-				printf("%d/%s %s\n", scanner->destination_port, protocol == TCP ? "tcp" : "udp",protocol == TCP ? "filtered" : "open");
+				printf("%s %d %s %s\n", cfg->addr_str, scanner->destination_port, protocol == TCP ? "tcp" : "udp",protocol == TCP ? "filtered" : "open");
 				break;
 			}
 		}
@@ -254,7 +254,7 @@ int port_scan(cfg_t *cfg, l4_scanner *scanner, int protocol) {
 
 			/* Response packet filter and data extraction */
 			if (filter_addresses((struct sockaddr *) &source_address, scanner->destination_addr, scanner->family) == 0) {
-				if (extract_data(bp, scanner->destination_port, scanner->family, protocol, iphdr_offset, cfg->verbose) == 0) {
+				if (extract_data(cfg, bp, scanner->destination_port, scanner->family, protocol, iphdr_offset) == 0) {
 					break;
 				}
 			}

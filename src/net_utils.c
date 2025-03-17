@@ -11,7 +11,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <errno.h>
 #include <unistd.h>
 #include <time.h>
 
@@ -523,7 +522,7 @@ int filter_ports(uint16_t source, uint16_t destination) {
 }
 
 /* Extracts packet data and evaluates response */
-int extract_data(unsigned char *packet, uint16_t destination_port, sa_family_t family, int protocol, int iphdr_offset, uint8_t verbose) {
+int extract_data(cfg_t *cfg, unsigned char *packet, uint16_t destination_port, sa_family_t family, int protocol, int iphdr_offset) {
 	/* TCP response */
 	if (protocol == TCP) {
 		struct tcphdr *t = (struct tcphdr *) packet;
@@ -533,16 +532,16 @@ int extract_data(unsigned char *packet, uint16_t destination_port, sa_family_t f
 			return EXIT_FAILURE;
 		}
 
-		/* Port status */
-		printf("%s%d/tcp ", verbose ? "\033[0;32m[RESPONSE]\033[0m " : "", destination_port);
+		/* Port status TCP */
+		printf("%s%s %d tcp ", cfg->verbose ? "\033[0;32m[RESPONSE]\033[0m " : "", cfg->addr_str,destination_port);
 
 		if(t->th_flags & TH_SYN && t->th_flags & TH_ACK) {
-			printf("open%s\n", verbose ? " [SYN, ACK]" : "");
+			printf("open%s\n", cfg->verbose ? " [SYN, ACK]" : "");
 		}
 		else if(t->th_flags & TH_RST && t->th_flags & TH_ACK) {
-			printf("closed%s\n", verbose ? " [RST, ACK]" : "");
+			printf("closed%s\n", cfg->verbose ? " [RST, ACK]" : "");
 		}
-		else printf("filtered%s\n", verbose ? " [Other flags]" : "");
+		else printf("filtered%s\n", cfg->verbose ? " [Other flags]" : "");
 	}
 
 	/* ICMP TCP response */
@@ -575,9 +574,9 @@ int extract_data(unsigned char *packet, uint16_t destination_port, sa_family_t f
 			return EXIT_FAILURE;
 		}
 
-		/* Port status */
-		printf("%s%d/udp ", verbose ? "\033[0;32m[RESPONSE]\033[0m " : "", destination_port);
-		printf("closed%s\n", verbose ? " [ICMP]" : "");
+		/* Port status UDP */
+		printf("%s%s %d udp ", cfg->verbose ? "\033[0;32m[RESPONSE]\033[0m " : "", cfg->addr_str,destination_port);
+		printf("closed%s\n", cfg->verbose ? " [ICMP]" : "");
 	}
 
 	return EXIT_SUCCESS;

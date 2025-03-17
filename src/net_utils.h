@@ -382,6 +382,6 @@ int filter_ports(uint16_t source, uint16_t destination);
  * 
  * @return Returns EXIT_SUCCESS on valid response, else EXIT_FAILURE
  */
-int extract_data(unsigned char *packet, uint16_t destination_port, sa_family_t family, int protocol, int iphdr_offset, uint8_t verbose);
+int extract_data(cfg_t *cfg, unsigned char *packet, uint16_t destination_port, sa_family_t family, int protocol, int iphdr_offset);
 
 #endif

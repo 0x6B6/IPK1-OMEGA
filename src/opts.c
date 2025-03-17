@@ -48,6 +48,8 @@ int parse_number(unsigned int *target, char *str); /* Parses timeout */
 
 int parse_ports(ports_t *ports, char *port_str); /* Parses port(s), checks their validity */
 
+int compare(const void *x, const void *y);
+
 static inline int is_opt(char *arg, char *opt_1, char *opt_2) { /* Matches given argument with optional parameters */
 	return  (strcmp(arg, opt_1) == 0 || strcmp(arg, opt_2) == 0);
 }
@@ -364,6 +366,7 @@ int parse_ports(ports_t *ports, char *port_str) {
 
 		/* Setup */
 		ports->access_type = P_LIST;
+		qsort(ports->port_list, ports->list_length, sizeof(int), compare);
 	}
 	else if ((found = strchr(copy, '-')) != NULL) { /* Port range: 53-80 */
 		if (strchr(found + 1, '-')) {
@@ -463,7 +466,7 @@ int parse_ports(ports_t *ports, char *port_str) {
 /* String to uint32 conversion
  *
  * source: https://man7.org/linux/man-pages/man3/strtol.3.html
-*/
+ */
 int parse_number(unsigned int *target, char *str_val) {
 	errno = 0;
 	char *endptr;
@@ -488,4 +491,21 @@ int parse_number(unsigned int *target, char *str_val) {
 	*target = value;
 
 	return EXIT_SUCCESS;
+}
+
+/* Quicksort sort function
+ *
+ * source: https://man7.org/linux/man-pages/man3/qsort.3.html
+ */
+int compare(const void *x, const void *y) {
+	int value_x = *((int *) x);
+	int value_y = *((int *) y);
+
+	if (value_x > value_y)
+		return 1;
+
+	if (value_x < value_y)
+		return -1;
+
+	return 0;
 }
